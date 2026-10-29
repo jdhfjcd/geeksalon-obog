@@ -156,7 +156,7 @@
 
   /* ログイン・フッター */
   .login-card { text-align: center; }
-  .gsi-box { display: flex; justify-content: center; min-height: 44px; margin: 20px 0 12px; }
+  .gsi-box { color-scheme: light; display: flex; justify-content: center; min-height: 44px; margin: 20px 0 12px; }
   .small { font-size: 12px; }
   footer { max-width: 1100px; margin: 0 auto; padding: 8px 16px 40px; display: flex; gap: 16px; justify-content: center;
     font-size: 12px; color: var(--sub); }
@@ -260,7 +260,7 @@
       <form id="reg-form">
         <label for="reg-name">名前</label>
         <input id="reg-name" maxlength="30" required placeholder="例：石田 のぞみ">
-        <label for="reg-grad">卒業年度</label>
+        <label for="reg-grad">FY</label>
         <select id="reg-grad" required></select>
         <button class="btn-main" type="submit" id="reg-submit">登録する</button>
       </form>
@@ -302,7 +302,7 @@
         <div><label for="c-price">料金（総額・円）</label><input id="c-price" type="number" min="0" step="1" inputmode="numeric" placeholder="例：17600"></div>
         <div><label for="c-deadline">出欠の締切</label><input id="c-deadline" type="date"></div>
         <div class="full"><label for="c-item">持ち物</label><input id="c-item" maxlength="100" placeholder="例：運動靴・飲み物"></div>
-        <div class="full"><label>対象の卒年度（複数選択できます・選ばなければ全員向け）</label><div class="chips" id="c-taisyo"></div></div>
+        <div class="full"><label>対象のFY（複数選択できます・選ばなければ全員向け）</label><div class="chips" id="c-taisyo"></div></div>
         <div class="full"><label for="c-detail">内容</label><textarea id="c-detail" rows="6" maxlength="2000" placeholder="イベントの内容、集合場所、主催の部活など"></textarea></div>
         <div class="full"><button class="btn-main" type="submit" id="c-submit">登録する</button></div>
       </form>
@@ -535,7 +535,7 @@
     ev.preventDefault();
     const name = document.getElementById('reg-name').value.trim();
     const grad = document.getElementById('reg-grad').value;
-    if (!name || !grad) { alert('名前と卒業年度を入力してください'); return; }
+    if (!name || !grad) { alert('名前とFYを入力してください'); return; }
     const btn = document.getElementById('reg-submit');
     btn.disabled = true; btn.textContent = '登録中…';
     call('registerUser', name, grad).then(applyInitial).catch(function (e) {
@@ -857,7 +857,7 @@
     const byPlace = groupAvg(evs, function (e) { return e.place; });
     byPlace.sort(function (x, y) { return y.value - x.value; });
 
-    // 卒年度別の参加率
+    // FY別の参加率
     const byGrad = markBest(a.gradYears.map(function (g) {
       const members = a.users.filter(function (u) { return u.gradYear === g; });
       if (!members.length) return null;
@@ -891,7 +891,7 @@
           (byHour.length ? bars(byHour, personFmt) : '<p class="muted">time 列に開始時間を入れると集計されます</p>')) +
         card('月ごとの平均参加人数',
           insight(byMonth, function (b) { return 'ピークは <b>' + b.label + '</b>（平均' + b.value + '人）'; }) + bars(byMonth, personFmt)) +
-        card('卒年度別の参加率',
+        card('FY別の参加率',
           insight(byGrad, function (b) { return '参加率が一番高いのは <b>' + b.label + '</b>（' + b.value + '%）'; }) +
           bars(byGrad, function (v) { return v + '%'; })) +
         card('新規とリピーター（直近12回）',
