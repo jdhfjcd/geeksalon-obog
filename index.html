@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GeekSalon OBOG イベントポータル</title>
+<meta name="description" content="GeekSalon OB・OG のイベント出欠ポータル">
+<meta name="theme-color" content="#0a0a0b">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23ff2d87'/%3E%3C/svg%3E">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700;800&display=swap');
+
+  :root {
+    --bg: #0a0a0b; --card: #141416; --text: #f4f4f5; --sub: #8e8e96; --line: #26262b; --soft: #1d1d21;
+    --pink: #ff2d87; --pink-hover: #ff4d9b; --pink-weak: rgba(255,45,135,.14);
+    --maybe: #ffb020; --maybe-weak: rgba(255,176,32,.14);
+    --ng: #8e8e96; --ng-weak: rgba(142,142,150,.16);
+    --radius: 16px;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: "Inter", "Noto Sans JP", -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif;
+    font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased; font-feature-settings: "palt"; }
+  ::selection { background: var(--pink); color: #fff; }
+
+  header { position: sticky; top: 0; z-index: 10; background: rgba(10,10,11,.8); backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid var(--line);
+    padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  header h1 { font-size: 15px; margin: 0; font-weight: 800; letter-spacing: .04em; display: flex; align-items: center; gap: 8px; }
+  header h1::before { content: ""; width: 10px; height: 10px; border-radius: 3px; background: var(--pink); box-shadow: 0 0 12px var(--pink); }
+  header .me { font-size: 12px; color: var(--sub); text-align: right; }
+
+  main { max-width: 640px; margin: 0 auto; padding: 20px 16px 40px; }
+  .view[hidden] { display: none; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; margin-bottom: 12px; }
+  h2 { font-size: 22px; font-weight: 800; letter-spacing: -.01em; margin: 0 0 14px; }
+  h3 { font-size: 11px; font-weight: 700; letter-spacing: .12em; color: var(--sub); margin: 0 0 10px; text-transform: uppercase; }
+  label { display: block; font-size: 12px; font-weight: 600; color: var(--sub); margin: 14px 0 6px; }
+  input, select { width: 100%; padding: 12px 14px; font: inherit; font-size: 16px; color: var(--text);
+    border: 1px solid var(--line); border-radius: 12px; background: var(--soft); transition: border-color .15s, box-shadow .15s; }
+  input::placeholder { color: #5e5e66; }
+  input:focus, select:focus { outline: none; border-color: var(--pink); box-shadow: 0 0 0 3px var(--pink-weak); }
+  button { font: inherit; cursor: pointer; border: none; border-radius: 999px; padding: 12px 18px; color: var(--text);
+    transition: transform .1s, background .15s, opacity .15s, box-shadow .15s; }
+  button:active { transform: scale(.98); }
+  button:disabled { opacity: .4; cursor: default; transform: none; }
+  .btn-main { background: var(--pink); color: #fff; width: 100%; font-weight: 700; margin-top: 18px; padding: 14px;
+    box-shadow: 0 8px 24px rgba(255,45,135,.3); }
+  .btn-main:hover { background: var(--pink-hover); }
+  .btn-sub { background: var(--soft); color: var(--text); font-weight: 600; }
+  .btn-back { background: none; color: var(--sub); padding: 4px 0; margin-bottom: 10px; font-weight: 600; font-size: 14px; border-radius: 0; }
+  .btn-back:hover { color: var(--pink); }
+  .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+  .btn-outline { background: var(--soft); border: 1px solid var(--line); color: var(--text); font-weight: 600; text-align: center;
+    text-decoration: none; border-radius: 999px; padding: 11px 12px; display: block; font-size: 13px; }
+  .btn-outline:hover { border-color: var(--pink); color: var(--pink); }
+  .muted { color: var(--sub); font-size: 13px; }
+  .center { text-align: center; padding: 48px 0; color: var(--sub); }
+
+  /* 一覧 */
+  .event-item { display: flex; gap: 16px; align-items: center; width: 100%; text-align: left; background: var(--card);
+    border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px; color: inherit; }
+  .event-item:hover { border-color: rgba(255,45,135,.5); }
+  .date-block { flex: none; width: 58px; height: 64px; border-radius: 12px; background: var(--pink); color: #fff;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; }
+  .date-block .mon { font-size: 11px; font-weight: 600; opacity: .85; letter-spacing: .06em; }
+  .date-block .day { font-size: 24px; font-weight: 800; font-family: "Inter", sans-serif; }
+  .date-block .wd { font-size: 10px; opacity: .85; }
+  .event-body { flex: 1; min-width: 0; }
+  .event-item .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .event-item .title { font-weight: 800; font-size: 16px; }
+  .event-item .place { color: var(--sub); font-size: 13px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .event-item .meta { display: flex; gap: 10px; align-items: center; margin-top: 6px; font-size: 13px; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+  .badge.join { background: var(--pink-weak); color: var(--pink); }
+  .badge.maybe { background: var(--maybe-weak); color: var(--maybe); }
+  .badge.decline { background: var(--ng-weak); color: var(--sub); }
+  .badge.none { background: var(--soft); color: var(--sub); border: 1px solid var(--line); }
+  .count { font-weight: 700; color: var(--text); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .count small { font-weight: 500; color: var(--sub); }
+
+  /* 詳細 */
+  dl.info { display: grid; grid-template-columns: 6.5em 1fr; gap: 10px 12px; margin: 0; }
+  dl.info dt { color: var(--sub); font-size: 12px; font-weight: 600; padding-top: 2px; }
+  dl.info dd { margin: 0; word-break: break-all; font-weight: 500; }
+  .map { width: 100%; height: 240px; border: 1px solid var(--line); border-radius: 12px; margin-top: 16px; }
+  .route-map { height: 420px; }
+  .rsvp { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+  .rsvp button { padding: 14px 4px; font-weight: 700; background: var(--soft); border: 1px solid var(--line); border-radius: 12px; }
+  .rsvp button:hover:not(:disabled) { border-color: #3a3a40; }
+  .rsvp button.on-join { background: var(--pink); border-color: var(--pink); color: #fff; box-shadow: 0 8px 24px rgba(255,45,135,.3); }
+  .rsvp button.on-maybe { background: var(--maybe); border-color: var(--maybe); color: #111; }
+  .rsvp button.on-decline { background: #3a3a40; border-color: #3a3a40; color: #fff; }
+  .comment-row { display: flex; gap: 8px; }
+  .comment-row input { flex: 1; }
+  .comment-row button { background: var(--soft); border: 1px solid var(--line); white-space: nowrap; font-weight: 600; border-radius: 12px; }
+  .per-person { font-size: 36px; font-weight: 800; letter-spacing: -.02em; font-family: "Inter", sans-serif;
+    font-variant-numeric: tabular-nums; color: var(--pink); }
+  ul.members { list-style: none; margin: 0; padding: 0; }
+  ul.members li { padding: 10px 0; border-bottom: 1px solid var(--line); }
+  ul.members li:last-child { border-bottom: none; }
+  .member-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .member-name { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+  .member-name .muted { font-weight: 400; }
+  .member-comment { font-size: 13px; color: var(--sub); margin-top: 2px; }
+  .paid-check { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--sub); margin: 0; white-space: nowrap; cursor: pointer; }
+  .paid-check input { width: 18px; height: 18px; padding: 0; accent-color: var(--pink); }
+  details { margin-top: 6px; border-top: 1px solid var(--line); }
+  details summary { cursor: pointer; font-weight: 600; font-size: 14px; padding: 10px 0 4px; color: var(--sub); }
+  a { color: var(--pink); }
+  .route-form { display: flex; gap: 8px; }
+  .route-form input { flex: 1; }
+  .route-form button { background: var(--pink); color: #fff; white-space: nowrap; font-weight: 700; border-radius: 12px; }
+  .error-box { color: var(--pink); }
+  .share-box { margin-top: 10px; }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--pink); color: #fff;
+    padding: 10px 18px; border-radius: 999px; font-size: 13px; font-weight: 700; opacity: 0; transition: opacity .2s; pointer-events: none;
+    box-shadow: 0 8px 24px rgba(255,45,135,.35); }
+  .toast.show { opacity: 1; }
+
+  /* ヘッダーのメニュー・管理者チェック */
+  header h1 { cursor: pointer; }
+  .nav { display: flex; align-items: center; gap: 12px; }
+  .nav-btn { padding: 6px 14px; font-size: 12px; font-weight: 700; background: var(--pink-weak); color: var(--pink); }
+  .nav-btn:hover { background: var(--pink); color: #fff; }
+  .checks { display: flex; gap: 12px; }
+
+  /* 分析 */
+  .ana-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+  .ana-head h2 { margin: 0; }
+  .ana-note { margin: 0 0 16px; }
+  .seg { display: inline-flex; background: var(--soft); border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
+  .seg button { padding: 6px 14px; font-size: 12px; font-weight: 700; background: none; color: var(--sub); }
+  .seg button.on { background: var(--pink); color: #fff; }
+  .kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px; }
+  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
+  .kpi .l { font-size: 11px; font-weight: 700; color: var(--sub); letter-spacing: .04em; }
+  .kpi .v { font-size: 22px; font-weight: 800; font-family: "Inter", "Noto Sans JP", sans-serif; font-variant-numeric: tabular-nums; margin-top: 2px; white-space: nowrap; }
+  .bar-row { display: grid; grid-template-columns: 7em 1fr auto; gap: 10px; align-items: center; margin: 9px 0; font-size: 13px; }
+  .bar-label { color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar-row.best .bar-label { color: var(--text); font-weight: 700; }
+  .bar-track { height: 10px; background: var(--soft); border-radius: 999px; overflow: hidden; display: flex; }
+  .bar-fill { height: 100%; background: #4a4a52; }
+  .bar-row.best .bar-fill, .bar-fill.new { background: var(--pink); }
+  .bar-fill.rest, .bar-row.best .bar-fill.rest { background: #4a4a52; }
+  .bar-val { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
+  .bar-val small { font-weight: 500; color: var(--sub); margin-left: 6px; font-size: 11px; }
+  .insight { margin: 0 0 10px; font-size: 13px; color: var(--sub); }
+  .insight b { color: var(--pink); }
+  .legend { display: flex; gap: 14px; font-size: 12px; color: var(--sub); margin-bottom: 4px; }
+  .legend i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; }
+  .legend i.new { background: var(--pink); }
+  .legend i.rest { background: #4a4a52; }
+
+  /* ログイン・フッター */
+  .login-card { text-align: center; }
+  .gsi-box { display: flex; justify-content: center; min-height: 44px; margin: 20px 0 12px; }
+  .small { font-size: 12px; }
+  footer { max-width: 1100px; margin: 0 auto; padding: 8px 16px 40px; display: flex; gap: 16px; justify-content: center;
+    font-size: 12px; color: var(--sub); }
+  footer a { color: var(--sub); }
+  .link-btn { background: none; border: none; padding: 0; color: var(--sub); font-size: 12px; text-decoration: underline; border-radius: 0; }
+  .link-btn:hover, footer a:hover { color: var(--pink); }
+
+  /* タグ・内容・フォーム */
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  dd .tags { margin-top: 0; }
+  .tag { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background: var(--soft); border: 1px solid var(--line); color: var(--sub); }
+  .tag.me { border-color: var(--pink); color: var(--pink); }
+  .detail-text { white-space: pre-wrap; word-break: break-word; line-height: 1.8; }
+  .nav-btn.ghost { background: var(--soft); color: var(--sub); border: 1px solid var(--line); }
+  .nav-btn.ghost:hover { color: var(--pink); border-color: var(--pink); background: var(--soft); }
+  textarea { width: 100%; padding: 12px 14px; font: inherit; font-size: 16px; color: var(--text); border: 1px solid var(--line);
+    border-radius: 12px; background: var(--soft); resize: vertical; }
+  textarea::placeholder { color: #5e5e66; }
+  textarea:focus { outline: none; border-color: var(--pink); box-shadow: 0 0 0 3px var(--pink-weak); }
+  .form-grid { display: grid; grid-template-columns: 1fr; gap: 0 16px; }
+  .form-grid .btn-main { margin-top: 24px; }
+  .time-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  label.chip { display: inline-block; margin: 0; }
+  .chip input { display: none; }
+  .chip span { display: inline-block; padding: 8px 14px; border-radius: 999px; background: var(--soft); border: 1px solid var(--line);
+    font-size: 13px; font-weight: 700; color: var(--sub); cursor: pointer; }
+  .chip input:checked + span { background: var(--pink); border-color: var(--pink); color: #fff; }
+  @media (max-width: 599px) {
+    header h1 { font-size: 13px; }
+    header .me { display: none; }
+    .nav { gap: 6px; }
+    .nav-btn { padding: 6px 10px; }
+    .nav-btn .lbl { display: none; }
+  }
+
+  /* 詳細画面：スマホは1列（経路検索は一番下）、PCは2列 */
+  .detail-grid { display: flex; flex-direction: column; }
+  .col-main, .col-side { display: contents; }
+  .route-card { order: 1; }
+
+  @media (min-width: 900px) {
+    header { padding: 16px max(24px, calc((100% - 1100px) / 2 + 24px)); }
+    header h1 { font-size: 16px; }
+    main { max-width: 1100px; padding: 36px 24px 56px; }
+    h2 { font-size: 28px; }
+
+    #event-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+    #event-list .card.center { grid-column: 1 / -1; }
+    .event-item { margin-bottom: 0; padding: 18px; transition: border-color .15s, transform .15s, box-shadow .15s; }
+    .event-item:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(255,45,135,.12); }
+
+    .detail-grid { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; align-items: start; }
+    .col-main, .col-side { display: block; }
+    .card { padding: 24px; margin-bottom: 16px; }
+    .map { height: 340px; }
+    .route-map { height: 480px; }
+
+    .kpis { grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 16px; }
+    .ana-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+    .ana-grid .card { margin-bottom: 0; }
+
+    .form-grid { grid-template-columns: 1fr 1fr; }
+    .form-grid .full { grid-column: 1 / -1; }
+    .form-card { max-width: 820px; margin: 0 auto; padding: 32px; }
+    .form-card.narrow { max-width: 520px; }
+
+    #v-register .card { max-width: 440px; margin: 56px auto; padding: 32px; }
+    #v-error .card { max-width: 560px; margin: 56px auto; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1 onclick="backToList()">GeekSalon OBOG イベントポータル</h1>
+  <div class="nav">
+    <button class="nav-btn" id="nav-create" hidden onclick="openCreate()">＋<span class="lbl"> イベント登録</span></button>
+    <button class="nav-btn" id="nav-analytics" hidden onclick="openAnalytics()">分析</button>
+    <button class="nav-btn ghost" id="nav-request" hidden onclick="openRequest()">管理者申請</button>
+    <button class="nav-btn" id="nav-login" hidden onclick="openLogin('')">ログイン</button>
+    <span class="me" id="me"></span>
+  </div>
+</header>
+
+<main>
+  <section class="view" id="v-loading"><p class="center">読み込み中…</p></section>
+
+  <section class="view" id="v-error" hidden>
+    <div class="card">
+      <h2>エラーが発生しました</h2>
+      <p class="error-box" id="error-msg"></p>
+      <button class="btn-sub" onclick="boot()">再読み込み</button>
+    </div>
+  </section>
+
+  <!-- 初回登録 -->
+  <section class="view" id="v-register" hidden>
+    <div class="card">
+      <h2>はじめに登録してください</h2>
+      <p class="muted" id="reg-email"></p>
+      <form id="reg-form">
+        <label for="reg-name">名前</label>
+        <input id="reg-name" maxlength="30" required placeholder="例：石田 のぞみ">
+        <label for="reg-grad">卒業年度</label>
+        <select id="reg-grad" required></select>
+        <button class="btn-main" type="submit" id="reg-submit">登録する</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- 一覧 -->
+  <section class="view" id="v-list" hidden>
+    <h2>今後の開催予定</h2>
+    <div id="event-list"></div>
+  </section>
+
+  <!-- 詳細 -->
+  <section class="view" id="v-detail" hidden>
+    <button class="btn-back" onclick="backToList()">‹ 一覧に戻る</button>
+    <div id="detail"></div>
+  </section>
+
+  <!-- 分析（管理者） -->
+  <section class="view" id="v-analytics" hidden>
+    <button class="btn-back" onclick="backToList()">‹ 一覧に戻る</button>
+    <div id="analytics"></div>
+  </section>
+
+  <!-- イベント登録（管理者） -->
+  <section class="view" id="v-create" hidden>
+    <button class="btn-back" onclick="backToList()">‹ 一覧に戻る</button>
+    <div class="card form-card">
+      <h2>イベントを登録</h2>
+      <form id="create-form" class="form-grid">
+        <div class="full"><label for="c-sports">イベント名</label><input id="c-sports" maxlength="50" required placeholder="例：フットサル"></div>
+        <div><label for="c-date">開催日</label><input id="c-date" type="date" required></div>
+        <div class="time-pair">
+          <div><label for="c-start">開始</label><input id="c-start" type="time"></div>
+          <div><label for="c-end">終了</label><input id="c-end" type="time"></div>
+        </div>
+        <div><label for="c-place">場所</label><input id="c-place" maxlength="100" placeholder="例：CATORZE14 FUTSAL PARK 町田"></div>
+        <div><label for="c-url">場所のURL（Googleマップなど）</label><input id="c-url" type="url" placeholder="https://"></div>
+        <div><label for="c-price">料金（総額・円）</label><input id="c-price" type="number" min="0" step="1" inputmode="numeric" placeholder="例：17600"></div>
+        <div><label for="c-deadline">出欠の締切</label><input id="c-deadline" type="date"></div>
+        <div class="full"><label for="c-item">持ち物</label><input id="c-item" maxlength="100" placeholder="例：運動靴・飲み物"></div>
+        <div class="full"><label>対象の卒年度（複数選択できます・選ばなければ全員向け）</label><div class="chips" id="c-taisyo"></div></div>
+        <div class="full"><label for="c-detail">内容</label><textarea id="c-detail" rows="6" maxlength="2000" placeholder="イベントの内容、集合場所、主催の部活など"></textarea></div>
+        <div class="full"><button class="btn-main" type="submit" id="c-submit">登録する</button></div>
+      </form>
+    </div>
+  </section>
+
+  <!-- 管理者申請 -->
+  <section class="view" id="v-request" hidden>
+    <button class="btn-back" onclick="backToList()">‹ 一覧に戻る</button>
+    <div class="card form-card narrow" id="request-box"></div>
+  </section>
+
+  <!-- 申請の承認・却下（メールのボタンから） -->
+  <section class="view" id="v-decide" hidden>
+    <div class="card form-card narrow" id="decide-box"></div>
+  </section>
+  <!-- ログイン -->
+  <section class="view" id="v-login" hidden>
+    <button class="btn-back" onclick="backToList()">‹ 一覧に戻る</button>
+    <div class="card form-card narrow login-card">
+      <h2>ログイン</h2>
+      <p class="muted" id="login-msg">Googleアカウントでログインすると、出欠の登録や参加者の確認ができます。</p>
+      <div id="gsi-btn" class="gsi-box"></div>
+      <p class="muted small">ログインで受け取るのは、名前の確認に使うメールアドレスだけです。</p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <a href="privacy.html">プライバシーポリシー</a>
+  <button class="link-btn" id="nav-logout" hidden onclick="logout()">ログアウト</button>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  /* ---------- 設定 ---------- */
+  const API_URL = 'https://script.google.com/macros/s/AKfycbwB6uKlH3kMYyf6jk1VbnMoKreCXU1CvbWFCqWnWbwrHLL1YitstGOr-_5POvKN8SGQpg/exec';
+  const CLIENT_ID = '730249034478-07u0ubf52kpacacg8d3se3efctrtma9r.apps.googleusercontent.com';
+  const SESSION_KEY = 'gs_obog_session';
+
+  const QS = new URLSearchParams(location.search);
+  const INITIAL_EVENT = /^[A-Za-z0-9_-]{1,64}$/.test(QS.get('event') || '') ? QS.get('event') : '';
+  const ACTION = QS.get('approve') ? 'approve' : (QS.get('reject') ? 'reject' : '');
+  const TOKEN = (QS.get('approve') || QS.get('reject') || '').replace(/[^A-Za-z0-9]/g, '');
+  const APP_URL = location.origin + location.pathname;
+  const state = { user: null, isAdmin: false, adminRequest: '', decided: false, gradYears: [], events: [], detail: null, initialOpened: false };
+
+  /* ---------- 共通 ---------- */
+  function getSession() { try { return localStorage.getItem(SESSION_KEY) || ''; } catch (e) { return ''; } }
+  function setSession(s) {
+    try { if (s) localStorage.setItem(SESSION_KEY, s); else localStorage.removeItem(SESSION_KEY); } catch (e) {}
+  }
+  function api(body) {
+    return fetch(API_URL, { method: 'POST', body: JSON.stringify(body) })
+      .then(function (r) {
+        if (!r.ok) throw new Error('通信に失敗しました（' + r.status + '）。時間をおいてもう一度お試しください');
+        return r.json();
+      })
+      .then(function (res) {
+        if (res.ok) return res.data;
+        const err = new Error(res.error || 'エラーが発生しました');
+        err.code = res.code || '';
+        throw err;
+      });
+  }
+  /** サーバーの関数を呼ぶ。ログインが必要ならログイン画面を出す */
+  function call(fn) {
+    const args = Array.prototype.slice.call(arguments, 1);
+    const session = getSession();
+    return api({ action: fn, args: args, session: session || undefined }).catch(function (e) {
+      if (e.code === 'AUTH' || e.code === 'LOGIN') {
+        if (e.code === 'AUTH') setSession('');
+        openLogin(e.code === 'AUTH' ? e.message : '');
+        return new Promise(function () {});
+      }
+      throw e;
+    });
+  }
+
+  /* ---------- ログイン ---------- */
+  let gsiReady = false;
+  function openLogin(msg) {
+    state.returnEvent = (state.detail && !document.getElementById('v-detail').hidden) ? state.detail.id : '';
+    document.getElementById('login-msg').textContent = msg ||
+      'Googleアカウントでログインすると、出欠の登録や参加者の確認ができます。';
+    show('v-login');
+    renderGsiButton();
+  }
+  function renderGsiButton() {
+    if (!(window.google && google.accounts && google.accounts.id)) {
+      setTimeout(renderGsiButton, 200);
+      return;
+    }
+    if (!gsiReady) {
+      google.accounts.id.initialize({ client_id: CLIENT_ID, callback: onCredential, ux_mode: 'popup', auto_select: false });
+      gsiReady = true;
+    }
+    const box = document.getElementById('gsi-btn');
+    box.innerHTML = '';
+    google.accounts.id.renderButton(box, { theme: 'filled_black', size: 'large', shape: 'pill', text: 'signin_with', locale: 'ja' });
+  }
+  function onCredential(resp) {
+    show('v-loading');
+    api({ action: 'login', credential: resp.credential }).then(function (d) {
+      setSession(d.session);
+      toast('ログインしました');
+      const back = state.returnEvent;
+      state.returnEvent = '';
+      if (ACTION && TOKEN && !state.decided) { boot(); return; }
+      applyInitial(d.initial);
+      if (back && d.initial.user) openDetail(back);
+    }).catch(showError);
+  }
+  function logout() {
+    const s = getSession();
+    setSession('');
+    if (window.google && google.accounts && google.accounts.id) google.accounts.id.disableAutoSelect();
+    if (s) api({ action: 'logout', args: [], session: s }).catch(function () {});
+    toast('ログアウトしました');
+    state.detail = null;
+    boot();
+  }
+  function show(id) {
+    document.querySelectorAll('.view').forEach(function (v) { v.hidden = v.id !== id; });
+    window.scrollTo(0, 0);
+  }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function errText(e) {
+    return String((e && e.message) || e).replace(/^(Exception|Error):\s*/, '');
+  }
+  function showError(e) {
+    document.getElementById('error-msg').textContent = errText(e);
+    show('v-error');
+  }
+  let toastTimer = null;
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove('show'); }, 2000);
+  }
+  function yen(n) { return '¥' + Number(n).toLocaleString('ja-JP'); }
+  function statusBadge(s) {
+    if (s === '参加') return '<span class="badge join">参加</span>';
+    if (s === '未定') return '<span class="badge maybe">未定</span>';
+    if (s === '不参加') return '<span class="badge decline">不参加</span>';
+    return '<span class="badge none">未回答</span>';
+  }
+  function eventUrl(id) { return APP_URL + '?event=' + encodeURIComponent(id); }
+  function mapEmbedUrl(place) {
+    return 'https://maps.google.com/maps?q=' + encodeURIComponent(place) + '&z=15&output=embed';
+  }
+  function routeEmbedUrl(origin, place) {
+    return 'https://maps.google.com/maps?saddr=' + encodeURIComponent(origin) +
+      '&daddr=' + encodeURIComponent(place) + '&dirflg=r&output=embed';
+  }
+  function routeAppUrl(origin, place) {
+    return 'https://www.google.com/maps/dir/?api=1&origin=' + encodeURIComponent(origin) +
+      '&destination=' + encodeURIComponent(place) + '&travelmode=transit';
+  }
+
+  /* ---------- 起動 ---------- */
+  function boot() {
+    show('v-loading');
+    if (ACTION && TOKEN && !state.decided) {
+      if (!getSession()) {
+        openLogin('申請を処理するには、管理者のGoogleアカウントでログインしてください。');
+        return;
+      }
+      state.decided = true;
+      call('decideAdminRequest', TOKEN, ACTION).then(renderDecision).catch(showError);
+      return;
+    }
+    call('getInitialData').then(applyInitial).catch(showError);
+  }
+  function setHeader(data) {
+    state.user = data.user;
+    state.isAdmin = data.isAdmin;
+    state.gradYears = data.gradYears;
+    state.adminRequest = data.adminRequest || '';
+    document.getElementById('nav-login').hidden = !!data.loggedIn;
+    document.getElementById('nav-logout').hidden = !data.loggedIn;
+    if (!data.user) {
+      ['nav-analytics', 'nav-create', 'nav-request'].forEach(function (id) { document.getElementById(id).hidden = true; });
+      document.getElementById('me').textContent = '';
+      return;
+    }
+    document.getElementById('nav-analytics').hidden = !data.isAdmin;
+    document.getElementById('nav-create').hidden = !data.isAdmin;
+    const req = document.getElementById('nav-request');
+    req.hidden = !!data.isAdmin;
+    req.textContent = state.adminRequest === 'pending' ? '申請中' : '管理者申請';
+    document.getElementById('me').textContent =
+      data.user.name + '（' + data.user.gradYear + '）' + (data.isAdmin ? ' 管理者' : '');
+  }
+  function applyInitial(data) {
+    state.user = data.user;
+    state.isAdmin = data.isAdmin;
+    state.gradYears = data.gradYears;
+    state.events = data.events;
+    setHeader(data);
+    if (data.loggedIn && !data.user) {
+      renderRegister(data.email);
+      show('v-register');
+      return;
+    }
+    if (INITIAL_EVENT && !state.initialOpened) {
+      state.initialOpened = true;
+      openDetail(INITIAL_EVENT);
+      return;
+    }
+    renderList();
+    show('v-list');
+  }
+
+  /* ---------- 初回登録 ---------- */
+  function renderRegister(email) {
+    document.getElementById('reg-email').textContent = 'ログイン中：' + email;
+    const sel = document.getElementById('reg-grad');
+    sel.innerHTML = '<option value="">選択してください</option>' +
+      state.gradYears.map(function (y) { return '<option>' + esc(y) + '</option>'; }).join('');
+  }
+  document.getElementById('reg-form').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    const name = document.getElementById('reg-name').value.trim();
+    const grad = document.getElementById('reg-grad').value;
+    if (!name || !grad) { alert('名前と卒業年度を入力してください'); return; }
+    const btn = document.getElementById('reg-submit');
+    btn.disabled = true; btn.textContent = '登録中…';
+    call('registerUser', name, grad).then(applyInitial).catch(function (e) {
+      alert(errText(e));
+    }).finally(function () {
+      btn.disabled = false; btn.textContent = '登録する';
+    });
+  });
+
+  /* ---------- 一覧 ---------- */
+  function renderList() {
+    const box = document.getElementById('event-list');
+    if (!state.events.length) {
+      box.innerHTML = '<div class="card center">今後の開催予定はまだありません</div>';
+      return;
+    }
+    box.innerHTML = state.events.map(function (e) {
+      const m = String(e.dateText).match(/^(\d{4})\/(\d{2})\/(\d{2})\((.)\)/);
+      const dateBlock = m
+        ? '<div class="date-block"><span class="mon">' + Number(m[2]) + '月</span><span class="day">' + Number(m[3]) +
+          '</span><span class="wd">' + esc(m[4]) + '</span></div>'
+        : '<div class="date-block"><span class="day">-</span></div>';
+      return '<button class="event-item" onclick="openDetail(\'' + esc(e.id) + '\')">' + dateBlock +
+        '<div class="event-body">' +
+          '<div class="row"><span class="title">' + esc(e.sports) + '</span>' + statusBadge(e.myStatus) + '</div>' +
+          '<div class="place">' + esc(e.place || '場所未定') + '</div>' +
+          (e.taisyo && e.taisyo.length ? '<div class="tags">' + taisyoTags(e.taisyo) + '</div>' : '') +
+          '<div class="meta"><span class="count">' + e.count + '人参加' +
+            (e.maybeCount ? ' <small>・未定' + e.maybeCount + '</small>' : '') + '</span>' +
+            (e.time ? '<span class="muted">' + esc(e.time) + (/[-〜~]/.test(e.time) ? '' : '〜') + '</span>' : '') +
+            (e.deadlinePassed ? '<span class="muted">締切済み</span>' : '') +
+          '</div>' +
+        '</div>' +
+        '</button>';
+    }).join('');
+  }
+  function backToList() {
+    show('v-loading');
+    call('getInitialData').then(applyInitial).catch(showError);
+  }
+
+  /* ---------- 詳細 ---------- */
+  function openDetail(id) {
+    show('v-loading');
+    call('getEventDetail', id).then(function (d) {
+      state.detail = d;
+      renderDetail();
+      show('v-detail');
+    }).catch(showError);
+  }
+
+  function memberList(list, opts) {
+    opts = opts || {};
+    if (!list.length) return '<p class="muted">' + (opts.empty || 'いません') + '</p>';
+    return '<ul class="members">' + list.map(function (p) {
+      let right = '<span class="muted">' + esc(p.gradYear) + '</span>';
+      if (opts.paid) {
+        if (state.detail.isAdmin && p.userId) {
+          const flag = function (field, label, on) {
+            return '<label class="paid-check"><input type="checkbox" ' + (on ? 'checked' : '') +
+              ' onchange="toggleFlag(\'' + field + '\', \'' + esc(p.userId) + '\', this.checked, this)">' + label + '</label>';
+          };
+          right = '<span class="checks">' + flag('attended', '来場', p.attended) + flag('paid', '集金', p.paid) + '</span>';
+        } else {
+          right = p.paid ? '<span class="badge join">支払済</span>' : '';
+        }
+      }
+      return '<li><div class="member-top"><span class="member-name">' + esc(p.name) +
+        (opts.paid ? ' <span class="muted">' + esc(p.gradYear) + '</span>' : '') + '</span>' + right + '</div>' +
+        (p.comment ? '<div class="member-comment">💬 ' + esc(p.comment) + '</div>' : '') + '</li>';
+    }).join('') + '</ul>';
+  }
+
+  function renderDetail() {
+    const d = state.detail;
+    const locked = d.deadlinePassed;
+
+    const actual = d.perBasis === 'actual';
+    const perPerson = d.price === null ? '未設定'
+      : d.perDivisor > 0
+        ? '<span class="per-person">' + yen(d.perPerson) + '</span> <span class="muted">/ 人</span>' +
+          '<p class="muted">' + yen(d.price) + ' ÷ ' + (actual ? '実際に来た' : '参加予定の') + d.perDivisor + '人' +
+          (actual ? '（確定）' : '（イベント終了後は、来場チェックした人数で計算し直します）') + '</p>'
+        : '<span class="muted">' + (actual ? '来場者がいないため' : '参加者がまだいないため') + '計算できません（総額 ' + yen(d.price) + '）</span>';
+
+    const extras = d.extras.map(function (x) {
+      return '<dt>' + esc(x.label) + '</dt><dd>' + esc(x.value) + '</dd>';
+    }).join('');
+
+    function rsvpBtn(label, cls) {
+      return '<button class="' + (d.myStatus === label ? cls : '') + '" ' + (locked ? 'disabled' : '') +
+        ' onclick="answer(\'' + label + '\')">' + label + '</button>';
+    }
+
+    const routeCard = d.place ?
+      '<div class="card route-card">' +
+        '<h3>経路検索</h3>' +
+        '<form class="route-form" id="route-form">' +
+          '<input id="route-origin" placeholder="出発駅（例：吉祥寺）" required>' +
+          '<button type="submit">検索</button>' +
+        '</form>' +
+        '<div id="route-result"></div>' +
+      '</div>' : '';
+
+    document.getElementById('detail').innerHTML =
+      '<div class="detail-grid"><div class="col-main">' +
+      '<div class="card">' +
+        '<h2>' + esc(d.sports) + '</h2>' +
+        '<dl class="info">' +
+          '<dt>開催日</dt><dd>' + esc(d.dateText) + (d.time ? ' ' + esc(d.time) : '') + '</dd>' +
+          '<dt>場所</dt><dd>' + esc(d.place || '未定') +
+            (d.urlPlace ? '<br><a href="' + esc(d.urlPlace) + '" target="_blank" rel="noopener">施設ページを開く</a>' : '') + '</dd>' +
+          '<dt>料金（総額）</dt><dd>' + (d.price === null ? '未設定' : yen(d.price)) + '</dd>' +
+          '<dt>持ち物</dt><dd>' + esc(d.item || '-') + '</dd>' +
+          '<dt>締切</dt><dd>' + esc(d.deadlineText || '-') + (locked ? '（締切済み）' : '') + '</dd>' +
+          (d.taisyo && d.taisyo.length ? '<dt>対象</dt><dd><div class="tags">' + taisyoTags(d.taisyo) + '</div></dd>' : '') +
+          (d.organizer ? '<dt>主催</dt><dd>' + esc(d.organizer) + '</dd>' : '') +
+          extras +
+        '</dl>' +
+        (d.place ? '<iframe class="map" loading="lazy" src="' + esc(mapEmbedUrl(d.place)) + '"></iframe>' : '') +
+        '<div class="btn-row">' +
+          (d.calendarUrl ? '<a class="btn-outline" href="' + esc(d.calendarUrl) + '" target="_blank" rel="noopener">📅 カレンダーに追加</a>' : '') +
+          '<button class="btn-outline" onclick="shareEvent()">🔗 このイベントのURL</button>' +
+        '</div>' +
+        '<div class="share-box" id="share-box"></div>' +
+      '</div>' +
+
+      (d.detail ? '<div class="card"><h3>内容</h3><div class="detail-text">' + linkify(esc(d.detail)) + '</div></div>' : '') +
+      '<div class="card">' +
+        '<h3>出欠</h3>' +
+        (!d.loggedIn
+          ? '<p class="muted">出欠の登録にはログインが必要です。</p>' +
+            '<button class="btn-main" onclick="openLogin(\'\')">ログインして出欠を登録</button>'
+          : '') +
+        (!d.loggedIn ? '' :
+        '<div class="comment-row">' +
+          '<input id="my-comment" maxlength="100" placeholder="一言コメント（例：30分遅れます）" value="' + esc(d.myComment) + '" ' + (locked ? 'disabled' : '') + '>' +
+          (d.myStatus && !locked ? '<button onclick="saveComment()">保存</button>' : '') +
+        '</div>' +
+        '<div class="rsvp">' +
+          rsvpBtn('参加', 'on-join') + rsvpBtn('未定', 'on-maybe') + rsvpBtn('不参加', 'on-decline') +
+        '</div>' +
+        (locked ? '<p class="muted">締切を過ぎたため変更できません</p>' : '') +
+        (d.myStatus === '参加' && d.myPaid ? '<p class="muted">✓ 集金済みです</p>' : '')) +
+      '</div>' +
+      routeCard +
+      '</div><div class="col-side">' +
+
+      '<div class="card">' +
+        '<h3>1人あたりの金額</h3>' + perPerson +
+        (d.count > 0 && d.price !== null ? '<p class="muted">集金済み：' + d.paidCount + ' / ' + d.count + '人</p>' : '') +
+      '</div>' +
+
+      '<div class="card">' +
+        '<h3>参加者（' + d.count + '人）</h3>' +
+        (d.isAdmin ? '<p class="muted">来場チェック：' + d.attendedCount + ' / ' + d.count + '人' + (d.isPast ? '' : '（当日・終了後にチェックしてね）') + '</p>' : '') +
+        (!d.loggedIn
+          ? '<p class="muted">未定 ' + d.maybeCount + '人・不参加 ' + d.declineCount + '人</p>' +
+            '<p class="muted">参加者の名前は、ログインすると見られます。</p>'
+          : memberList(d.participants, { paid: true, empty: 'まだ参加者はいません' }) +
+            '<details' + (d.maybes.length ? ' open' : '') + '><summary>未定（' + d.maybes.length + '人）</summary>' + memberList(d.maybes) + '</details>' +
+            '<details><summary>不参加（' + d.decliners.length + '人）</summary>' + memberList(d.decliners) + '</details>') +
+      '</div>' +
+
+      (!d.loggedIn ? '' :
+      '<div class="card">' +
+        '<h3>未回答（' + d.unanswered.length + '人）</h3>' +
+        memberList(d.unanswered, { empty: '全員回答済みです 🎉' }) +
+      '</div>') +
+      '</div></div>';
+
+    const form = document.getElementById('route-form');
+    if (form) form.addEventListener('submit', searchRoute);
+  }
+
+  function setRsvpDisabled(v) {
+    document.querySelectorAll('.rsvp button, .comment-row button').forEach(function (b) { b.disabled = v; });
+  }
+
+  function answer(status) {
+    const comment = document.getElementById('my-comment').value;
+    setRsvpDisabled(true);
+    call('setAttendance', state.detail.id, status, comment).then(function (d) {
+      state.detail = d;
+      renderDetail();
+      toast(status + 'で登録しました');
+    }).catch(function (e) {
+      alert(errText(e));
+      setRsvpDisabled(false);
+    });
+  }
+
+  function saveComment() {
+    answer(state.detail.myStatus);
+  }
+
+  function toggleFlag(field, userId, value, el) {
+    el.disabled = true;
+    call('setFlag', state.detail.id, userId, field, value).then(function (d) {
+      state.detail = d;
+      renderDetail();
+    }).catch(function (e) {
+      alert(errText(e));
+      el.checked = !value;
+      el.disabled = false;
+    });
+  }
+
+  /* ---------- 分析（管理者） ---------- */
+  const WD = ['', '月', '火', '水', '木', '金', '土', '日'];
+
+  function openAnalytics() {
+    show('v-loading');
+    call('getAnalytics').then(function (d) {
+      state.analytics = d;
+      if (!state.anaScope) state.anaScope = 'all';
+      renderAnalytics();
+      show('v-analytics');
+    }).catch(showError);
+  }
+  function setAnaScope(s) { state.anaScope = s; renderAnalytics(); }
+
+  function peopleOf(e) { return e.attendedIds || e.joinIds; }
+  function round1(n) { return Math.round(n * 10) / 10; }
+  function avg(arr) { return arr.length ? arr.reduce(function (a, b) { return a + b; }, 0) / arr.length : 0; }
+  function range(a, b) { const r = []; for (let i = a; i <= b; i++) r.push(i); return r; }
+
+  function bars(rows, fmt) {
+    if (!rows.length) return '<p class="muted">データがありません</p>';
+    const max = Math.max.apply(null, rows.map(function (r) { return r.value; })) || 1;
+    return rows.map(function (r) {
+      const pct = Math.round(r.value / max * 100);
+      const fill = (r.part !== undefined)
+        ? '<span class="bar-fill new" style="width:' + Math.round(r.part / max * 100) + '%"></span>' +
+          '<span class="bar-fill rest" style="width:' + (pct - Math.round(r.part / max * 100)) + '%"></span>'
+        : '<span class="bar-fill" style="width:' + pct + '%"></span>';
+      return '<div class="bar-row' + (r.best ? ' best' : '') + '">' +
+        '<span class="bar-label" title="' + esc(r.label) + '">' + esc(r.label) + '</span>' +
+        '<span class="bar-track">' + fill + '</span>' +
+        '<span class="bar-val">' + esc(fmt ? fmt(r.value) : r.value) + (r.sub ? '<small>' + esc(r.sub) + '</small>' : '') + '</span>' +
+      '</div>';
+    }).join('');
+  }
+  function markBest(rows) {
+    let best = null;
+    rows.forEach(function (r) { if (!best || r.value > best.value) best = r; });
+    if (best && best.value > 0) best.best = true;
+    return rows;
+  }
+  function insight(rows, text) {
+    const b = rows.find(function (r) { return r.best; });
+    return (b && rows.length > 1) ? '<p class="insight">' + text(b) + '</p>' : '';
+  }
+  /** keyFn でまとめて、1回あたりの平均人数を出す */
+  function groupAvg(evs, keyFn, labelFn, order) {
+    const g = {};
+    evs.forEach(function (e) {
+      const k = keyFn(e);
+      if (k === null || k === undefined || k === '') return;
+      (g[k] = g[k] || []).push(peopleOf(e).length);
+    });
+    const keys = (order || Object.keys(g).sort()).filter(function (k) { return g[k]; });
+    return markBest(keys.map(function (k) {
+      return { label: labelFn ? labelFn(k) : String(k), value: round1(avg(g[k])), sub: g[k].length + '回' };
+    }));
+  }
+  function card(title, body) {
+    return '<div class="card"><h3>' + title + '</h3>' + body + '</div>';
+  }
+
+  function renderAnalytics() {
+    const a = state.analytics;
+    const scope = state.anaScope;
+    const evs = a.events.filter(function (e) { return scope === 'all' || e.past; });
+    const userCount = a.users.length;
+    const usersById = {};
+    a.users.forEach(function (u) { usersById[u.userId] = u; });
+
+    const head = '<div class="ana-head"><h2>参加者分析</h2><div class="seg">' +
+      '<button class="' + (scope === 'all' ? 'on' : '') + '" onclick="setAnaScope(\'all\')">すべて</button>' +
+      '<button class="' + (scope === 'past' ? 'on' : '') + '" onclick="setAnaScope(\'past\')">終了したイベント</button>' +
+      '</div></div>' +
+      '<p class="muted ana-note">人数は、来場チェックをつけたイベントは「実際に来た人数」、まだのイベントは「参加と回答した人数」で数えています。</p>';
+
+    if (!evs.length) {
+      document.getElementById('analytics').innerHTML = head + '<div class="card center">対象のイベントがまだありません</div>';
+      return;
+    }
+
+    // 人ごとの参加回数
+    const times = {};
+    evs.forEach(function (e) { peopleOf(e).forEach(function (id) { times[id] = (times[id] || 0) + 1; }); });
+    const participants = Object.keys(times).filter(function (id) { return usersById[id]; });
+    const repeaters = participants.filter(function (id) { return times[id] >= 2; }).length;
+
+    // 来場率（参加と回答した人のうち、実際に来た人）
+    let joined = 0, came = 0;
+    evs.forEach(function (e) {
+      if (!e.attendedIds) return;
+      joined += e.joinIds.length;
+      came += e.joinIds.filter(function (id) { return e.attendedIds.indexOf(id) !== -1; }).length;
+    });
+
+    const kpis = [
+      ['開催数', evs.length + '回'],
+      ['平均参加人数', round1(avg(evs.map(function (e) { return peopleOf(e).length; }))) + '人'],
+      ['参加経験あり', participants.length + ' / ' + userCount + '人'],
+      ['リピーター率', participants.length ? Math.round(repeaters / participants.length * 100) + '%' : '-'],
+      ['来場率', joined ? Math.round(came / joined * 100) + '%' : '-'],
+      ['回答率', userCount ? Math.round(avg(evs.map(function (e) { return Math.min(1, e.answered / userCount); })) * 100) + '%' : '-']
+    ].map(function (k) { return '<div class="kpi"><div class="l">' + k[0] + '</div><div class="v">' + k[1] + '</div></div>'; }).join('');
+
+    const personFmt = function (v) { return v + '人'; };
+
+    // 曜日・時間帯・月・場所
+    const byWd = groupAvg(evs, function (e) { return e.weekday; }, function (k) { return WD[k] + '曜'; }, range(1, 7));
+    const byHour = groupAvg(evs, function (e) { return e.hour; }, function (k) { return k + '時〜'; }, range(0, 23));
+    const byMonth = groupAvg(evs, function (e) { return e.ym; }, function (k) { return k.replace('/', '年') + '月'; });
+    const byPlace = groupAvg(evs, function (e) { return e.place; });
+    byPlace.sort(function (x, y) { return y.value - x.value; });
+
+    // 卒年度別の参加率
+    const byGrad = markBest(a.gradYears.map(function (g) {
+      const members = a.users.filter(function (u) { return u.gradYear === g; });
+      if (!members.length) return null;
+      const came = members.filter(function (u) { return times[u.userId]; });
+      const total = members.reduce(function (s, u) { return s + (times[u.userId] || 0); }, 0);
+      return { label: g, value: Math.round(came.length / members.length * 100), sub: came.length + '/' + members.length + '人・延べ' + total + '回' };
+    }).filter(Boolean));
+
+    // 新規とリピーターの推移（直近12回）
+    const seen = {};
+    const flow = evs.map(function (e) {
+      const ids = peopleOf(e);
+      const fresh = ids.filter(function (id) { return !seen[id]; }).length;
+      ids.forEach(function (id) { seen[id] = true; });
+      return { label: e.dateText.slice(5, 10), value: ids.length, part: fresh, sub: '新規' + fresh };
+    }).slice(-12);
+
+    // 常連ランキング
+    const ranking = participants
+      .sort(function (x, y) { return times[y] - times[x]; })
+      .slice(0, 10)
+      .map(function (id) { const u = usersById[id]; return { label: u.name + '（' + u.gradYear + '）', value: times[id] }; });
+
+    document.getElementById('analytics').innerHTML = head +
+      '<div class="kpis">' + kpis + '</div>' +
+      '<div class="ana-grid">' +
+        card('曜日別の平均参加人数',
+          insight(byWd, function (b) { return '一番集まるのは <b>' + b.label + '</b>（平均' + b.value + '人）'; }) + bars(byWd, personFmt)) +
+        card('開始時間別の平均参加人数',
+          insight(byHour, function (b) { return '一番集まるのは <b>' + b.label + '</b> の回（平均' + b.value + '人）'; }) +
+          (byHour.length ? bars(byHour, personFmt) : '<p class="muted">time 列に開始時間を入れると集計されます</p>')) +
+        card('月ごとの平均参加人数',
+          insight(byMonth, function (b) { return 'ピークは <b>' + b.label + '</b>（平均' + b.value + '人）'; }) + bars(byMonth, personFmt)) +
+        card('卒年度別の参加率',
+          insight(byGrad, function (b) { return '参加率が一番高いのは <b>' + b.label + '</b>（' + b.value + '%）'; }) +
+          bars(byGrad, function (v) { return v + '%'; })) +
+        card('新規とリピーター（直近12回）',
+          '<div class="legend"><span><i class="new"></i>初参加</span><span><i class="rest"></i>2回目以上</span></div>' + bars(flow, personFmt)) +
+        card('場所別の平均参加人数', bars(byPlace, personFmt)) +
+        card('よく来てくれる人 TOP10', bars(ranking, function (v) { return v + '回'; })) +
+      '</div>';
+  }
+
+  /* ---------- 対象・内容 ---------- */
+  function taisyoTags(list) {
+    const mine = state.user && state.user.gradYear;
+    return list.map(function (g) {
+      return '<span class="tag' + (g === mine ? ' me' : '') + '">' + esc(g) + '</span>';
+    }).join('');
+  }
+  function linkify(escaped) {
+    return escaped.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+  }
+
+  /* ---------- イベント登録（管理者） ---------- */
+  function openCreate() {
+    document.getElementById('create-form').reset();
+    document.getElementById('c-taisyo').innerHTML = state.gradYears.map(function (g) {
+      return '<label class="chip"><input type="checkbox" value="' + esc(g) + '"><span>' + esc(g) + '</span></label>';
+    }).join('');
+    show('v-create');
+  }
+  document.getElementById('create-form').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    const v = function (id) { return document.getElementById(id).value; };
+    const form = {
+      sports: v('c-sports'), date: v('c-date'), start: v('c-start'), end: v('c-end'),
+      place: v('c-place'), urlPlace: v('c-url'), price: v('c-price'), deadline: v('c-deadline'),
+      item: v('c-item'), detail: v('c-detail'),
+      taisyo: Array.prototype.map.call(document.querySelectorAll('#c-taisyo input:checked'), function (i) { return i.value; })
+    };
+    const btn = document.getElementById('c-submit');
+    btn.disabled = true; btn.textContent = '登録中…';
+    call('createEvent', form).then(function (id) {
+      toast('イベントを登録しました');
+      openDetail(id);
+    }).catch(function (e) {
+      alert(errText(e));
+    }).finally(function () {
+      btn.disabled = false; btn.textContent = '登録する';
+    });
+  });
+
+  /* ---------- 管理者申請 ---------- */
+  function openRequest() {
+    const box = document.getElementById('request-box');
+    if (state.adminRequest === 'pending') {
+      box.innerHTML = '<h2>申請中です</h2>' +
+        '<p class="muted">承認されると、イベント登録や参加者分析が使えるようになります。承認されたらページを開き直してね。</p>';
+    } else {
+      box.innerHTML = '<h2>管理者権限を申請</h2>' +
+        '<p class="muted">承認されると、イベントの登録・集金/来場チェック・参加者分析が使えるようになります。</p>' +
+        (state.adminRequest === 'rejected' ? '<p class="muted">前回の申請は承認されませんでした。内容を変えて再申請できます。</p>' : '') +
+        '<form id="req-form">' +
+          '<label for="req-club">所属（部活・コミュニティ名）</label>' +
+          '<input id="req-club" maxlength="50" required placeholder="例：フットサル部">' +
+          '<label for="req-reason">申請理由・開催したいイベント</label>' +
+          '<textarea id="req-reason" rows="4" maxlength="500" required placeholder="例：毎月フットサル会を主催したいです"></textarea>' +
+          '<button class="btn-main" type="submit" id="req-submit">申請する</button>' +
+        '</form>';
+      document.getElementById('req-form').addEventListener('submit', submitRequest);
+    }
+    show('v-request');
+  }
+  function submitRequest(ev) {
+    ev.preventDefault();
+    const btn = document.getElementById('req-submit');
+    btn.disabled = true; btn.textContent = '送信中…';
+    call('requestAdmin', document.getElementById('req-club').value, document.getElementById('req-reason').value)
+      .then(function (data) {
+        setHeader(data);
+        toast('申請しました');
+        openRequest();
+      }).catch(function (e) {
+        alert(errText(e));
+        btn.disabled = false; btn.textContent = '申請する';
+      });
+  }
+  function renderDecision(r) {
+    const who = esc(r.name) + '（' + esc(r.gradYear) + '・' + esc(r.club) + '）';
+    const done = { approved: '承認済み', rejected: '却下済み' }[r.already] || r.already;
+    document.getElementById('decide-box').innerHTML =
+      (r.already
+        ? '<h2>この申請はすでに' + esc(done) + 'です</h2><p class="muted">' + who + '</p>'
+        : '<h2>' + (r.decision === 'approve' ? '承認しました' : '却下しました') + '</h2>' +
+          '<p class="muted">' + who + (r.decision === 'approve' ? 'さんを管理者にしました。' : 'さんの申請を却下しました。') + '</p>') +
+      '<button class="btn-main" onclick="backToList()">トップへ</button>';
+    show('v-decide');
+    call('getInitialData').then(setHeader).catch(function () {});
+  }
+
+  /* ---------- 共有 ---------- */
+  function shareEvent() {
+    const url = eventUrl(state.detail.id);
+    const fallback = function () {
+      document.getElementById('share-box').innerHTML =
+        '<input id="share-url" readonly value="' + esc(url) + '">' +
+        '<p class="muted">長押し（右クリック）でコピーしてね</p>';
+      const input = document.getElementById('share-url');
+      input.focus(); input.select();
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(function () { toast('URLをコピーしました'); }).catch(fallback);
+    } else {
+      fallback();
+    }
+  }
+
+  /* ---------- 経路検索 ---------- */
+  function searchRoute(ev) {
+    ev.preventDefault();
+    let origin = document.getElementById('route-origin').value.trim();
+    if (!origin) return;
+    if (!/駅$/.test(origin)) origin += '駅';
+    const place = state.detail.place;
+    document.getElementById('route-result').innerHTML =
+      '<iframe class="map route-map" src="' + esc(routeEmbedUrl(origin, place)) + '"></iframe>' +
+      '<p><a href="' + esc(routeAppUrl(origin, place)) + '" target="_blank" rel="noopener">Googleマップのアプリで開く</a></p>';
+  }
+
+  boot();
+</script>
+</body>
+</html>
