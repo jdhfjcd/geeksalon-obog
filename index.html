@@ -377,7 +377,7 @@
       <form id="reg-form">
         <label for="reg-name">名前</label>
         <input id="reg-name" maxlength="30" required placeholder="例：石田 のぞみ">
-        <label for="reg-grad">FY</label>
+        <label for="reg-grad">卒業年度</label>
         <select id="reg-grad" required></select>
         <button class="btn-main" type="submit" id="reg-submit">登録する</button>
       </form>
@@ -424,7 +424,7 @@
         <div><label for="c-price">料金（総額・円）</label><input id="c-price" type="number" min="0" step="1" inputmode="numeric" placeholder="例：3000"><p class="field-note">※ 全員分の合計金額を入れてください。1人あたりの金額は参加人数で割って自動で表示されます（イベント後は実際に来た人数で計算し直します）</p></div>
         <div><label for="c-deadline">出欠の締切</label><input id="c-deadline" type="date"></div>
         <div class="full"><label for="c-item">持ち物</label><input id="c-item" maxlength="100" placeholder="例：運動靴・飲み物"></div>
-        <div class="full"><label>対象のFY（複数選択できます・選ばなければ全員向け）</label><div class="chips" id="c-taisyo"></div></div>
+        <div class="full"><label>対象のFY（どの年代向けかの目安・複数選択できます）</label><div class="chips" id="c-taisyo"></div></div>
         <div class="full"><label for="c-detail">内容</label><textarea id="c-detail" rows="6" maxlength="2000" placeholder="イベントの内容、集合場所、主催の部活など"></textarea></div>
         <div class="full"><button class="btn-main" type="submit" id="c-submit">登録する</button></div>
       </form>
@@ -486,7 +486,7 @@
   const INITIAL_EVENT = /^[A-Za-z0-9_-]{1,64}$/.test(QS.get('event') || '') ? QS.get('event') : '';
   const INITIAL_CHAT = /^[A-Za-z0-9-]{8,64}$/.test(QS.get('chat') || '') ? QS.get('chat') : '';
   const APP_URL = location.origin + location.pathname;
-  const state = { user: null, isAdmin: false, eventColors: ['#FF6253'], editingId: '', unread: 0, listMode: savedListMode(), calMonth: null, thread: null, sending: false, gradYears: [], events: [], detail: null, initialOpened: false };
+  const state = { user: null, isAdmin: false, eventColors: ['#FF6253'], editingId: '', unread: 0, listMode: savedListMode(), calMonth: null, thread: null, sending: false, gradYears: [], targetFys: ['FY23', 'FY24', 'FY25', 'FY26', 'FY27'], events: [], detail: null, initialOpened: false };
 
   /* ---------- 共通 ---------- */
   function getSession() { try { return localStorage.getItem(SESSION_KEY) || ''; } catch (e) { return ''; } }
@@ -616,6 +616,7 @@
     state.user = data.user;
     state.isAdmin = data.isAdmin;
     state.gradYears = data.gradYears;
+    if (data.targetFys) state.targetFys = data.targetFys;
     if (data.eventColors) state.eventColors = data.eventColors;
     document.getElementById('nav-login').hidden = !!data.loggedIn;
     document.getElementById('nav-logout').hidden = !data.loggedIn;
@@ -668,7 +669,7 @@
     ev.preventDefault();
     const name = document.getElementById('reg-name').value.trim();
     const grad = document.getElementById('reg-grad').value;
-    if (!name || !grad) { alert('名前とFYを入力してください'); return; }
+    if (!name || !grad) { alert('名前と卒業年度を入力してください'); return; }
     const btn = document.getElementById('reg-submit');
     btn.disabled = true; btn.textContent = '登録中…';
     call('registerUser', name, grad).then(applyInitial).catch(function (e) {
@@ -1007,7 +1008,7 @@
     const byPlace = groupAvg(evs, function (e) { return e.place; });
     byPlace.sort(function (x, y) { return y.value - x.value; });
 
-    // FY別の参加率
+    // 卒業年度別の参加率
     const byGrad = markBest(a.gradYears.map(function (g) {
       const members = a.users.filter(function (u) { return u.gradYear === g; });
       if (!members.length) return null;
@@ -1041,7 +1042,7 @@
           (byHour.length ? bars(byHour, personFmt) : '<p class="muted">time 列に開始時間を入れると集計されます</p>')) +
         card('月ごとの平均参加人数',
           insight(byMonth, function (b) { return 'ピークは <b>' + b.label + '</b>（平均' + b.value + '人）'; }) + bars(byMonth, personFmt)) +
-        card('FY別の参加率',
+        card('卒業年度別の参加率',
           insight(byGrad, function (b) { return '参加率が一番高いのは <b>' + b.label + '</b>（' + b.value + '%）'; }) +
           bars(byGrad, function (v) { return v + '%'; })) +
         card('新規とリピーター（直近12回）',
@@ -1053,9 +1054,8 @@
 
   /* ---------- 対象・内容 ---------- */
   function taisyoTags(list) {
-    const mine = state.user && state.user.gradYear;
     return list.map(function (g) {
-      return '<span class="tag' + (g === mine ? ' me' : '') + '">' + esc(g) + '</span>';
+      return '<span class="tag">' + esc(g) + '</span>';
     }).join('');
   }
   function linkify(escaped) {
@@ -1076,7 +1076,7 @@
     state.editingId = ev ? ev.id : '';
     document.getElementById('create-form').reset();
     const sel = ev ? ev.taisyo || [] : [];
-    document.getElementById('c-taisyo').innerHTML = state.gradYears.map(function (g) {
+    document.getElementById('c-taisyo').innerHTML = state.targetFys.map(function (g) {
       return '<label class="chip"><input type="checkbox" value="' + esc(g) + '"' + (sel.indexOf(g) !== -1 ? ' checked' : '') + '><span>' + esc(g) + '</span></label>';
     }).join('');
     const cur = ev && state.eventColors.indexOf(ev.color) !== -1 ? ev.color : state.eventColors[0];
