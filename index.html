@@ -914,6 +914,16 @@
     });
   }
 
+  /* ---------- 共通の表示部品 ---------- */
+  function taisyoTags(list) {
+    return list.map(function (g) {
+      return '<span class="tag">' + esc(g) + '</span>';
+    }).join('');
+  }
+  function linkify(escaped) {
+    return escaped.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+  }
+
   /* ---------- イベント登録（ログインした全員） ---------- */
   /** 背景色に合わせて、文字を白か黒にする */
   function textOn(hex) {
