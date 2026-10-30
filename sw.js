@@ -1,7 +1,7 @@
 // アプリとして使うためのサービスワーカー。
 // 画面は毎回ネットから最新を取りに行き、圏外のときだけ前回の画面を出す。
 // データ（Apps Script への通信）は一切キャッシュしない。
-const CACHE = 'obog-v1';
+const CACHE = 'obog-v2';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', function (e) {
