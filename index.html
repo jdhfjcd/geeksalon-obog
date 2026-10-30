@@ -57,6 +57,17 @@
   img.avatar { object-fit: cover; }
   .avatar-edit { display: flex; align-items: center; gap: 18px; margin: 6px 0 4px; }
   .avatar-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+  .crop-bg { position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .crop-bg[hidden] { display: none; }
+  .crop-box { background: var(--card); border-radius: var(--radius); padding: 18px; width: 100%; max-width: 340px; }
+  .crop-box h3 { margin: 0 0 4px; font-size: 16px; }
+  .crop-stage { position: relative; width: 100%; aspect-ratio: 1 / 1; overflow: hidden; border-radius: 12px; background: #111;
+    touch-action: none; cursor: grab; margin-top: 10px; user-select: none; -webkit-user-select: none; }
+  .crop-stage:active { cursor: grabbing; }
+  .crop-stage img { position: absolute; left: 0; top: 0; max-width: none; transform-origin: 0 0; pointer-events: none; }
+  .crop-mask { position: absolute; inset: 0; border-radius: 50%; box-shadow: 0 0 0 999px rgba(0,0,0,.55); border: 2px solid rgba(255,255,255,.9); pointer-events: none; }
+  .crop-zoom { display: flex; align-items: center; gap: 10px; margin-top: 14px; color: var(--sub); font-size: 13px; }
+  .crop-zoom input { flex: 1; accent-color: var(--accent); padding: 0; border: none; background: none; }
   .file-btn { display: inline-block; margin: 0; padding: 10px 16px; border-radius: 999px; cursor: pointer; font-size: 13px; color: var(--text); }
   .mode-seg button { padding: 8px 18px; font-size: 13px; }
   .member-text { display: flex; flex-direction: column; min-width: 0; }
@@ -556,6 +567,19 @@
 
 <div class="toast" id="toast"></div>
 
+<div class="crop-bg" id="crop" hidden>
+  <div class="crop-box">
+    <h3>画像の位置を調整</h3>
+    <p class="muted small" style="margin:0">ドラッグで移動、スライダーやピンチで拡大できます</p>
+    <div class="crop-stage" id="crop-stage"><img id="crop-img" alt=""><div class="crop-mask"></div></div>
+    <div class="crop-zoom"><span>－</span><input type="range" id="crop-zoom" min="1" max="4" step="0.01" value="1" aria-label="拡大"><span>＋</span></div>
+    <div class="btn-row">
+      <button type="button" class="btn-outline" onclick="closeCrop()">キャンセル</button>
+      <button type="button" class="btn-main" style="margin-top:0" onclick="applyCrop()">決定</button>
+    </div>
+  </div>
+</div>
+
 <script>
   /* ---------- 設定 ---------- */
   const API_URL = 'https://script.google.com/macros/s/AKfycbwB6uKlH3kMYyf6jk1VbnMoKreCXU1CvbWFCqWnWbwrHLL1YitstGOr-_5POvKN8SGQpg/exec';
@@ -817,32 +841,104 @@
   function nm(name, disp) {
     return state.viewMode === 'display' && disp ? disp : name;
   }
-  /** 選んだ画像を正方形に切り抜いて小さくする */
+  /** 選んだ画像を、丸い枠に合わせて自分で位置・大きさを決めて切り抜く */
+  const crop = { w: 0, h: 0, S: 0, base: 1, zoom: 1, x: 0, y: 0, ptrs: {}, pinch: null };
   document.getElementById('prof-file').addEventListener('change', function () {
     const file = this.files && this.files[0];
     this.value = '';
     if (!file) return;
     const reader = new FileReader();
     reader.onload = function () {
-      const img = new Image();
+      const img = document.getElementById('crop-img');
       img.onload = function () {
-        const size = 160;
-        const c = document.createElement('canvas');
-        c.width = c.height = size;
-        const s = Math.min(img.width, img.height);
-        const x = c.getContext('2d');
-        x.fillStyle = '#fff';
-        x.fillRect(0, 0, size, size);
-        x.drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, size, size);
-        let url = c.toDataURL('image/jpeg', 0.82);
-        if (url.length > 44000) url = c.toDataURL('image/jpeg', 0.6);
-        setProfAvatar(url);
+        document.getElementById('crop').hidden = false;
+        crop.w = img.naturalWidth; crop.h = img.naturalHeight;
+        img.style.width = crop.w + 'px'; img.style.height = crop.h + 'px';
+        crop.S = document.getElementById('crop-stage').clientWidth;
+        crop.base = crop.S / Math.min(crop.w, crop.h);
+        crop.zoom = 1;
+        document.getElementById('crop-zoom').value = 1;
+        crop.x = (crop.S - crop.w * crop.base) / 2;
+        crop.y = (crop.S - crop.h * crop.base) / 2;
+        drawCrop();
       };
       img.onerror = function () { alert('この画像は読み込めませんでした'); };
       img.src = reader.result;
     };
     reader.readAsDataURL(file);
   });
+  function drawCrop() {
+    const sc = crop.base * crop.zoom;
+    crop.x = Math.min(0, Math.max(crop.S - crop.w * sc, crop.x));
+    crop.y = Math.min(0, Math.max(crop.S - crop.h * sc, crop.y));
+    document.getElementById('crop-img').style.transform = 'translate(' + crop.x + 'px,' + crop.y + 'px) scale(' + sc + ')';
+  }
+  /** 枠の中の点 (cx, cy) を中心に拡大率を変える */
+  function zoomCrop(z, cx, cy) {
+    z = Math.min(4, Math.max(1, z));
+    if (cx === undefined) { cx = crop.S / 2; cy = crop.S / 2; }
+    const k = z / crop.zoom;
+    crop.x = cx - (cx - crop.x) * k;
+    crop.y = cy - (cy - crop.y) * k;
+    crop.zoom = z;
+    document.getElementById('crop-zoom').value = z;
+    drawCrop();
+  }
+  function closeCrop() {
+    document.getElementById('crop').hidden = true;
+    document.getElementById('crop-img').removeAttribute('src');
+    crop.ptrs = {}; crop.pinch = null;
+  }
+  function applyCrop() {
+    const sc = crop.base * crop.zoom;
+    const size = 200;
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    const x = c.getContext('2d');
+    x.fillStyle = '#fff';
+    x.fillRect(0, 0, size, size);
+    x.drawImage(document.getElementById('crop-img'), -crop.x / sc, -crop.y / sc, crop.S / sc, crop.S / sc, 0, 0, size, size);
+    let url = c.toDataURL('image/jpeg', 0.85);
+    if (url.length > 44000) url = c.toDataURL('image/jpeg', 0.6);
+    if (url.length > 44000) url = c.toDataURL('image/jpeg', 0.4);
+    setProfAvatar(url);
+    closeCrop();
+  }
+  (function () {
+    const stage = document.getElementById('crop-stage');
+    function pos(e) { const r = stage.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+    function pinchInfo() {
+      const p = Object.keys(crop.ptrs).map(function (k) { return crop.ptrs[k]; });
+      return { d: Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y), cx: (p[0].x + p[1].x) / 2, cy: (p[0].y + p[1].y) / 2 };
+    }
+    stage.addEventListener('pointerdown', function (e) {
+      stage.setPointerCapture(e.pointerId);
+      crop.ptrs[e.pointerId] = pos(e);
+      if (Object.keys(crop.ptrs).length === 2) { const i = pinchInfo(); crop.pinch = { d: i.d, zoom: crop.zoom }; }
+    });
+    stage.addEventListener('pointermove', function (e) {
+      const prev = crop.ptrs[e.pointerId];
+      if (!prev) return;
+      const p = pos(e);
+      crop.ptrs[e.pointerId] = p;
+      if (Object.keys(crop.ptrs).length >= 2 && crop.pinch) {
+        const i = pinchInfo();
+        zoomCrop(crop.pinch.zoom * i.d / crop.pinch.d, i.cx, i.cy);
+      } else {
+        crop.x += p.x - prev.x; crop.y += p.y - prev.y;
+        drawCrop();
+      }
+    });
+    function up(e) { delete crop.ptrs[e.pointerId]; if (Object.keys(crop.ptrs).length < 2) crop.pinch = null; }
+    stage.addEventListener('pointerup', up);
+    stage.addEventListener('pointercancel', up);
+    stage.addEventListener('wheel', function (e) {
+      e.preventDefault();
+      const p = pos(e);
+      zoomCrop(crop.zoom * Math.exp(-e.deltaY / 400), p.x, p.y);
+    }, { passive: false });
+    document.getElementById('crop-zoom').addEventListener('input', function () { zoomCrop(Number(this.value)); });
+  })();
   document.getElementById('reg-form').addEventListener('submit', function (ev) {
     ev.preventDefault();
     const name = document.getElementById('reg-name').value.trim();
