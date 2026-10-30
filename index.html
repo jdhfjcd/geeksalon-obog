@@ -193,6 +193,91 @@
     .nav-btn .lbl { display: none; }
   }
 
+  /* 一覧の切り替え・カレンダー */
+  .list-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+  .list-head h2 { margin: 0; }
+  .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .cal-title { font-weight: 800; font-size: 18px; font-variant-numeric: tabular-nums; }
+  .cal-nav button { background: var(--soft); border: 1px solid var(--line); width: 38px; height: 38px; padding: 0; font-weight: 800; }
+  .cal-nav button:hover:not(:disabled) { border-color: var(--pink); color: var(--pink); }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+  .cal-wd { text-align: center; font-size: 11px; font-weight: 700; color: var(--sub); padding: 4px 0; }
+  .cal-wd.sun, .cal-cell.sun .cal-d { color: #ff6b81; }
+  .cal-wd.sat, .cal-cell.sat .cal-d { color: #6ba8ff; }
+  .cal-cell { min-height: 92px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 5px;
+    display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .cal-cell.blank { background: transparent; border-color: transparent; }
+  .cal-cell.past { opacity: .4; }
+  .cal-cell.today { border-color: var(--pink); box-shadow: 0 0 0 1px var(--pink) inset; }
+  .cal-d { font-size: 12px; font-weight: 700; padding: 0 2px; font-variant-numeric: tabular-nums; }
+  .cal-ev { display: block; width: 100%; text-align: left; font-size: 11px; font-weight: 700; padding: 3px 6px; border-radius: 6px;
+    background: var(--pink-weak); color: var(--pink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.35; }
+  .cal-ev.join { background: var(--pink); color: #fff; }
+  .cal-ev.maybe { background: var(--maybe-weak); color: var(--maybe); }
+  .cal-ev:hover { filter: brightness(1.25); }
+  .cal-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--sub); margin-top: 10px; }
+  .cal-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+  .cal-empty { margin-top: 10px; }
+  #event-list[hidden], #event-cal[hidden] { display: none; }
+  .cal-list { margin-top: 18px; }
+  .cal-list h3 { margin-bottom: 10px; }
+  .nav-btn { white-space: nowrap; }
+
+  /* チャット */
+  .nav-btn { position: relative; }
+  .nav-badge { position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
+    background: #fff; color: var(--pink); font-size: 10px; font-weight: 800; line-height: 18px; text-align: center; }
+  .nav-badge[hidden] { display: none; }
+  #v-chats, #v-thread { max-width: 720px; margin: 0 auto; }
+  .chat-item { display: flex; gap: 12px; align-items: center; width: 100%; text-align: left; background: var(--card);
+    border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 8px; color: inherit; }
+  .chat-item:hover { border-color: rgba(255,45,135,.5); }
+  .avatar { flex: none; width: 44px; height: 44px; border-radius: 50%; background: var(--pink-weak); color: var(--pink);
+    display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 17px; }
+  .chat-main { flex: 1; min-width: 0; }
+  .chat-top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+  .chat-name { font-weight: 700; }
+  .chat-time { font-size: 11px; color: var(--sub); white-space: nowrap; }
+  .chat-bottom { display: flex; justify-content: space-between; gap: 8px; align-items: center; margin-top: 2px; }
+  .chat-prev { font-size: 13px; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .unread { flex: none; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--pink); color: #fff;
+    font-size: 11px; font-weight: 800; line-height: 20px; text-align: center; }
+  .thread-head { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+  .thread-head .btn-back { margin: 0; }
+  .thread-peer { font-weight: 800; font-size: 17px; }
+  .thread-box { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); display: flex; flex-direction: column;
+    height: calc(100vh - 180px); height: calc(100dvh - 180px); min-height: 360px; overflow: hidden; }
+  .thread-msgs { flex: 1; overflow-y: auto; padding: 16px 14px; display: flex; flex-direction: column; gap: 8px; }
+  .msg { display: flex; flex-direction: column; max-width: 78%; }
+  .msg.me { align-self: flex-end; align-items: flex-end; }
+  .msg.them { align-self: flex-start; align-items: flex-start; }
+  .bubble { padding: 9px 14px; border-radius: 18px; white-space: pre-wrap; word-break: break-word; line-height: 1.55; font-size: 14px; }
+  .msg.me .bubble { background: var(--pink); color: #fff; border-bottom-right-radius: 6px; }
+  .msg.them .bubble { background: var(--soft); border: 1px solid var(--line); border-bottom-left-radius: 6px; }
+  .msg.me .bubble a { color: #fff; }
+  .msg.broadcast .bubble { background: var(--pink-weak); border: 1px solid rgba(255,45,135,.45); color: var(--text); }
+  .msg.broadcast.me .bubble a { color: var(--pink); }
+  .msg-tag { font-size: 11px; font-weight: 700; color: var(--pink); margin-bottom: 3px; }
+  .msg-tag a { color: inherit; }
+  .msg-time { font-size: 10px; color: var(--sub); margin-top: 2px; }
+  .msg-date { align-self: center; font-size: 11px; color: var(--sub); background: var(--soft); padding: 2px 12px; border-radius: 999px; margin: 6px 0; }
+  .thread-empty { margin: auto; text-align: center; }
+  .thread-ctx { padding: 8px 14px; font-size: 12px; font-weight: 600; color: var(--pink); border-top: 1px solid var(--line); background: var(--pink-weak); }
+  .thread-ctx[hidden] { display: none; }
+  .thread-form { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--line); align-items: flex-end; }
+  .thread-form textarea { flex: 1; resize: none; max-height: 140px; padding: 10px 14px; border-radius: 20px; line-height: 1.5; }
+  .thread-form button { background: var(--pink); color: #fff; font-weight: 700; padding: 11px 18px; }
+  .bc-row { display: flex; gap: 8px; margin-top: 8px; }
+  .bc-row select { flex: 1; font-size: 14px; padding: 10px 12px; }
+  .bc-row button { background: var(--pink); color: #fff; font-weight: 700; border-radius: 12px; white-space: nowrap; }
+  @media (max-width: 599px) {
+    .cal-grid { gap: 2px; }
+    .cal-cell { min-height: 64px; padding: 3px 2px; border-radius: 8px; }
+    .cal-ev { font-size: 10px; padding: 2px 3px; border-radius: 4px; }
+    .cal-ev .t { display: none; }
+    .thread-box { height: calc(100vh - 150px); height: calc(100dvh - 150px); }
+  }
+
   /* 詳細画面：スマホは1列（経路検索は一番下）、PCは2列 */
   .detail-grid { display: flex; flex-direction: column; }
   .col-main, .col-side { display: contents; }
@@ -206,6 +291,7 @@
 
     #event-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
     #event-list .card.center { grid-column: 1 / -1; }
+    .cal-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
     .event-item { margin-bottom: 0; padding: 18px; transition: border-color .15s, transform .15s, box-shadow .15s; }
     .event-item:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(255,45,135,.12); }
 
@@ -233,6 +319,7 @@
 <header>
   <h1 onclick="backToList()">GeekSalon OBOG イベントポータル</h1>
   <div class="nav">
+    <button class="nav-btn" id="nav-chat" hidden onclick="openChats()">💬<span class="lbl"> チャット</span><span class="nav-badge" id="chat-badge" hidden></span></button>
     <button class="nav-btn" id="nav-create" hidden onclick="openCreate()">＋<span class="lbl"> イベント登録</span></button>
     <button class="nav-btn" id="nav-analytics" hidden onclick="openAnalytics()">分析</button>
     <button class="nav-btn" id="nav-login" hidden onclick="openLogin('')">ログイン</button>
@@ -268,7 +355,11 @@
 
   <!-- 一覧 -->
   <section class="view" id="v-list" hidden>
-    <h2>今後の開催予定</h2>
+    <div class="list-head">
+      <h2>今後の開催予定</h2>
+      <div class="seg" id="view-seg"><button data-v="list" onclick="setListMode('list')">リスト</button><button data-v="cal" onclick="setListMode('cal')">カレンダー</button></div>
+    </div>
+    <div id="event-cal" hidden></div>
     <div id="event-list"></div>
   </section>
 
@@ -308,6 +399,26 @@
     </div>
   </section>
 
+  <!-- チャット一覧 -->
+  <section class="view" id="v-chats" hidden>
+    <button class="btn-back" onclick="backToList()">‹ 一覧に戻る</button>
+    <h2>チャット</h2>
+    <div id="chat-list"></div>
+  </section>
+
+  <!-- トーク -->
+  <section class="view" id="v-thread" hidden>
+    <div class="thread-head"><button class="btn-back" onclick="openChats()">‹ チャット</button><div id="thread-peer"></div></div>
+    <div class="thread-box">
+      <div id="thread-msgs" class="thread-msgs"></div>
+      <div id="thread-ctx" class="thread-ctx" hidden></div>
+      <form id="thread-form" class="thread-form">
+        <textarea id="thread-input" rows="1" maxlength="1000" placeholder="メッセージを入力"></textarea>
+        <button type="submit" id="thread-send">送信</button>
+      </form>
+    </div>
+  </section>
+
   <!-- ログイン -->
   <section class="view" id="v-login" hidden>
     <button class="btn-back" onclick="backToList()">‹ 一覧に戻る</button>
@@ -335,8 +446,9 @@
 
   const QS = new URLSearchParams(location.search);
   const INITIAL_EVENT = /^[A-Za-z0-9_-]{1,64}$/.test(QS.get('event') || '') ? QS.get('event') : '';
+  const INITIAL_CHAT = /^[A-Za-z0-9-]{8,64}$/.test(QS.get('chat') || '') ? QS.get('chat') : '';
   const APP_URL = location.origin + location.pathname;
-  const state = { user: null, isAdmin: false, gradYears: [], events: [], detail: null, initialOpened: false };
+  const state = { user: null, isAdmin: false, unread: 0, listMode: savedListMode(), calMonth: null, thread: null, sending: false, gradYears: [], events: [], detail: null, initialOpened: false };
 
   /* ---------- 共通 ---------- */
   function getSession() { try { return localStorage.getItem(SESSION_KEY) || ''; } catch (e) { return ''; } }
@@ -468,12 +580,14 @@
     document.getElementById('nav-login').hidden = !!data.loggedIn;
     document.getElementById('nav-logout').hidden = !data.loggedIn;
     if (!data.user) {
-      ['nav-analytics', 'nav-create'].forEach(function (id) { document.getElementById(id).hidden = true; });
+      ['nav-analytics', 'nav-create', 'nav-chat'].forEach(function (id) { document.getElementById(id).hidden = true; });
       document.getElementById('me').textContent = '';
       return;
     }
     document.getElementById('nav-analytics').hidden = !data.isAdmin;
     document.getElementById('nav-create').hidden = false;
+    document.getElementById('nav-chat').hidden = false;
+    setUnread(data.unread);
     document.getElementById('me').textContent =
       data.user.name + '（' + data.user.gradYear + '）' + (data.isAdmin ? ' 管理者' : '');
   }
@@ -486,6 +600,12 @@
     if (data.loggedIn && !data.user) {
       renderRegister(data.email);
       show('v-register');
+      return;
+    }
+    if (INITIAL_CHAT && !state.chatOpened) {
+      if (!data.loggedIn) { openLogin('チャットを見るにはログインしてください。'); return; }
+      state.chatOpened = true;
+      openThread(INITIAL_CHAT);
       return;
     }
     if (INITIAL_EVENT && !state.initialOpened) {
@@ -520,12 +640,15 @@
 
   /* ---------- 一覧 ---------- */
   function renderList() {
+    applyListMode();
     const box = document.getElementById('event-list');
     if (!state.events.length) {
       box.innerHTML = '<div class="card center">今後の開催予定はまだありません</div>';
       return;
     }
-    box.innerHTML = state.events.map(function (e) {
+    box.innerHTML = state.events.map(eventItemHtml).join('');
+  }
+  function eventItemHtml(e) {
       const m = String(e.dateText).match(/^(\d{4})\/(\d{2})\/(\d{2})\((.)\)/);
       const dateBlock = m
         ? '<div class="date-block"><span class="mon">' + Number(m[2]) + '月</span><span class="day">' + Number(m[3]) +
@@ -543,7 +666,6 @@
           '</div>' +
         '</div>' +
         '</button>';
-    }).join('');
   }
   function backToList() {
     show('v-loading');
@@ -632,6 +754,7 @@
         '<div class="btn-row">' +
           (d.calendarUrl ? '<a class="btn-outline" href="' + esc(d.calendarUrl) + '" target="_blank" rel="noopener">📅 カレンダーに追加</a>' : '') +
           '<button class="btn-outline" onclick="shareEvent()">🔗 このイベントのURL</button>' +
+          (d.canContact ? '<button class="btn-outline" onclick="openThread(\'' + esc(d.organizerId) + '\', \'' + esc(d.id) + '\')">✉️ 主催者に連絡</button>' : '') +
         '</div>' +
         '<div class="share-box" id="share-box"></div>' +
       '</div>' +
@@ -656,6 +779,18 @@
       '</div>' +
       routeCard +
       '</div><div class="col-side">' +
+
+      (d.canBroadcast ?
+      '<div class="card">' +
+        '<h3>参加者に一斉周知</h3>' +
+        '<p class="muted">参加者のチャットに届き、メールでも通知されます。</p>' +
+        '<textarea id="bc-body" rows="4" maxlength="1000" placeholder="例：雨天決行です。15:45に正面入口集合でお願いします"></textarea>' +
+        '<div class="bc-row">' +
+          '<select id="bc-target"><option value="join">参加の人（' + d.count + '人）</option>' +
+            '<option value="joinMaybe">参加＋未定の人（' + (d.count + d.maybeCount) + '人）</option></select>' +
+          '<button id="bc-send" onclick="sendBroadcast()">送信</button>' +
+        '</div>' +
+      '</div>' : '') +
 
       '<div class="card">' +
         '<h3>1人あたりの金額</h3>' + perPerson +
@@ -913,6 +1048,230 @@
       btn.disabled = false; btn.textContent = '登録する';
     });
   });
+
+  /* ---------- カレンダー ---------- */
+  function pad2(n) { return ('0' + n).slice(-2); }
+  function ymdOf(d) { return d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate()); }
+  function setListMode(m) {
+    state.listMode = m;
+    try { localStorage.setItem('gs_obog_view', m); } catch (e) {}
+    applyListMode();
+  }
+  function applyListMode() {
+    const cal = state.listMode === 'cal';
+    document.getElementById('event-cal').hidden = !cal;
+    document.getElementById('event-list').hidden = cal;
+    document.querySelectorAll('#view-seg button').forEach(function (b) { b.classList.toggle('on', b.dataset.v === state.listMode); });
+    if (cal) renderCal();
+  }
+  function moveCal(diff) {
+    state.calMonth = new Date(state.calMonth.getFullYear(), state.calMonth.getMonth() + diff, 1);
+    renderCal();
+  }
+  function renderCal() {
+    const now = new Date();
+    const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    if (!state.calMonth) state.calMonth = thisMonth;
+    const y = state.calMonth.getFullYear(), mo = state.calMonth.getMonth();
+    const byDay = {};
+    state.events.forEach(function (e) { if (e.dateYmd) (byDay[e.dateYmd] = byDay[e.dateYmd] || []).push(e); });
+    const lead = new Date(y, mo, 1).getDay();
+    const days = new Date(y, mo + 1, 0).getDate();
+    const today = ymdOf(now);
+    let cells = '';
+    let count = 0;
+    for (let i = 0; i < lead; i++) cells += '<div class="cal-cell blank"></div>';
+    for (let d = 1; d <= days; d++) {
+      const key = '' + y + pad2(mo + 1) + pad2(d);
+      const wd = (lead + d - 1) % 7;
+      const evs = byDay[key] || [];
+      count += evs.length;
+      cells += '<div class="cal-cell' + (wd === 0 ? ' sun' : wd === 6 ? ' sat' : '') + (key === today ? ' today' : key < today ? ' past' : '') + '">' +
+        '<span class="cal-d">' + d + '</span>' +
+        evs.map(function (e) {
+          const cls = e.myStatus === '参加' ? ' join' : e.myStatus === '未定' ? ' maybe' : '';
+          const t = String(e.time || '').match(/^\d{1,2}:\d{2}/);
+          return '<button class="cal-ev' + cls + '" title="' + esc(e.sports + (e.time ? ' ' + e.time : '')) + '" onclick="openDetail(\'' + esc(e.id) + '\')">' +
+            (t ? '<span class="t">' + esc(t[0]) + ' </span>' : '') + esc(e.sports) + '</button>';
+        }).join('') +
+        '</div>';
+    }
+    const tail = (7 - (lead + days) % 7) % 7;
+    for (let i = 0; i < tail; i++) cells += '<div class="cal-cell blank"></div>';
+    const monthEvents = state.events.filter(function (e) { return e.dateYmd && e.dateYmd.slice(0, 6) === ('' + y + pad2(mo + 1)); });
+    const next = state.events.find(function (e) { return e.dateYmd && e.dateYmd.slice(0, 6) > ('' + y + pad2(mo + 1)); });
+    document.getElementById('event-cal').innerHTML =
+      '<div class="cal-nav">' +
+        '<button onclick="moveCal(-1)" ' + (state.calMonth <= thisMonth ? 'disabled' : '') + ' aria-label="前の月">‹</button>' +
+        '<span class="cal-title">' + y + '年' + (mo + 1) + '月</span>' +
+        '<button onclick="moveCal(1)" aria-label="次の月">›</button>' +
+      '</div>' +
+      '<div class="cal-grid">' +
+        ['日', '月', '火', '水', '木', '金', '土'].map(function (w, i) {
+          return '<div class="cal-wd' + (i === 0 ? ' sun' : i === 6 ? ' sat' : '') + '">' + w + '</div>';
+        }).join('') + cells +
+      '</div>' +
+      (count ? '' : '<p class="muted cal-empty">この月の予定はありません' +
+        (next ? '。次は <a href="#" onclick="jumpCal(\'' + next.dateYmd + '\');return false">' + Number(next.dateYmd.slice(4, 6)) + '月</a> にあります' : '') + '</p>') +
+      '<div class="cal-legend"><span><i style="background:var(--pink)"></i>参加</span><span><i style="background:var(--maybe)"></i>未定</span>' +
+        '<span><i style="background:var(--pink-weak);border:1px solid var(--pink)"></i>未回答・不参加</span></div>' +
+      (monthEvents.length ? '<div class="cal-list"><h3>' + (mo + 1) + '月の予定</h3><div class="cal-cards">' + monthEvents.map(eventItemHtml).join('') + '</div></div>' : '');
+  }
+  function jumpCal(ymd) {
+    state.calMonth = new Date(Number(ymd.slice(0, 4)), Number(ymd.slice(4, 6)) - 1, 1);
+    renderCal();
+  }
+
+  /* ---------- チャット ---------- */
+  let pollTimer = null;
+  function setUnread(n) {
+    state.unread = n || 0;
+    const b = document.getElementById('chat-badge');
+    b.hidden = !state.unread;
+    b.textContent = state.unread > 99 ? '99+' : String(state.unread);
+  }
+  function fmtTime(ms) {
+    const d = new Date(ms), now = new Date();
+    if (ymdOf(d) === ymdOf(now)) return pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+    if (d.getFullYear() === now.getFullYear()) return (d.getMonth() + 1) + '/' + d.getDate();
+    return d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate();
+  }
+  function fmtDay(ms) {
+    const d = new Date(ms);
+    return d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate() + '(' + '日月火水木金土'.charAt(d.getDay()) + ')';
+  }
+  function openChats() {
+    stopPoll();
+    show('v-loading');
+    call('listThreads').then(function (list) {
+      renderChats(list);
+      setUnread(list.reduce(function (s, t) { return s + t.unread; }, 0));
+      show('v-chats');
+    }).catch(showError);
+  }
+  function renderChats(list) {
+    const box = document.getElementById('chat-list');
+    if (!list.length) {
+      box.innerHTML = '<div class="card center">まだトークはありません。<br>イベントページの「主催者に連絡」から始められます。</div>';
+      return;
+    }
+    box.innerHTML = list.map(function (t) {
+      const prev = (t.lastKind === 'broadcast' ? '📢 ' : '') + (t.lastMine ? 'あなた：' : '') + t.lastBody.replace(/\s+/g, ' ');
+      return '<button class="chat-item" onclick="openThread(\'' + esc(t.peerId) + '\')">' +
+        '<span class="avatar">' + esc(t.name.charAt(0)) + '</span>' +
+        '<span class="chat-main">' +
+          '<span class="chat-top"><span class="chat-name">' + esc(t.name) + ' <span class="muted">' + esc(t.gradYear) + '</span></span>' +
+            '<span class="chat-time">' + fmtTime(t.lastAt) + '</span></span>' +
+          '<span class="chat-bottom"><span class="chat-prev">' + esc(prev) + '</span>' +
+            (t.unread ? '<span class="unread">' + t.unread + '</span>' : '') + '</span>' +
+        '</span>' +
+      '</button>';
+    }).join('');
+  }
+  function openThread(peerId, eventId) {
+    stopPoll();
+    const ctx = eventId && state.detail && state.detail.id === eventId ? state.detail.sports + '（' + state.detail.dateText + '）' : '';
+    state.thread = { peerId: peerId, eventId: ctx ? eventId : '', ctx: ctx, count: -1 };
+    show('v-loading');
+    call('getThread', peerId).then(function (t) {
+      document.getElementById('thread-input').value = '';
+      show('v-thread');
+      renderThread(t, true);
+      startPoll();
+    }).catch(showError);
+  }
+  function renderThread(t, force) {
+    setUnread(t.unreadTotal);
+    document.getElementById('thread-peer').innerHTML =
+      '<span class="thread-peer">' + esc(t.peer.name) + '</span> <span class="muted">' + esc(t.peer.gradYear) + '</span>';
+    const ctx = document.getElementById('thread-ctx');
+    ctx.hidden = !state.thread.eventId;
+    ctx.textContent = state.thread.eventId ? '📅 「' + state.thread.ctx + '」について連絡します' : '';
+    if (!force && t.messages.length === state.thread.count) return;
+    state.thread.count = t.messages.length;
+    const box = document.getElementById('thread-msgs');
+    const nearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 120;
+    let lastDay = '';
+    box.innerHTML = !t.messages.length
+      ? '<p class="muted thread-empty">メッセージを送ってトークを始めましょう</p>'
+      : t.messages.map(function (m) {
+        const day = fmtDay(m.at);
+        const sep = day !== lastDay ? '<div class="msg-date">' + day + '</div>' : '';
+        lastDay = day;
+        const ev = m.eventTitle
+          ? '<a href="#" onclick="openDetail(\'' + esc(m.eventId) + '\');return false">' + esc(m.eventTitle) + '</a>' : '';
+        const tag = m.kind === 'broadcast'
+          ? '<div class="msg-tag">📢 一斉周知' + (ev ? '・' + ev : '') + '</div>'
+          : (ev ? '<div class="msg-tag">📅 ' + ev + '</div>' : '');
+        const d = new Date(m.at);
+        return sep + '<div class="msg ' + (m.mine ? 'me' : 'them') + (m.kind === 'broadcast' ? ' broadcast' : '') + '">' + tag +
+          '<div class="bubble">' + linkify(esc(m.body)) + '</div>' +
+          '<span class="msg-time">' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + '</span></div>';
+      }).join('');
+    if (force || nearBottom) box.scrollTop = box.scrollHeight;
+  }
+  function startPoll() {
+    pollTimer = setInterval(function () {
+      if (document.getElementById('v-thread').hidden) { stopPoll(); return; }
+      if (document.hidden || state.sending) return;
+      api({ action: 'getThread', args: [state.thread.peerId], session: getSession() })
+        .then(function (t) { if (!document.getElementById('v-thread').hidden) renderThread(t, false); })
+        .catch(function () {});
+    }, 6000);
+  }
+  function stopPoll() {
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  }
+  function sendThreadMessage(ev) {
+    if (ev) ev.preventDefault();
+    const input = document.getElementById('thread-input');
+    const body = input.value.trim();
+    if (!body || state.sending) return;
+    const btn = document.getElementById('thread-send');
+    state.sending = true; btn.disabled = true;
+    call('sendMessage', state.thread.peerId, body, state.thread.eventId).then(function (t) {
+      input.value = '';
+      input.style.height = '';
+      state.thread.eventId = '';
+      renderThread(t, true);
+    }).catch(function (e) {
+      alert(errText(e));
+    }).finally(function () {
+      state.sending = false; btn.disabled = false;
+      input.focus();
+    });
+  }
+  document.getElementById('thread-form').addEventListener('submit', sendThreadMessage);
+  document.getElementById('thread-input').addEventListener('keydown', function (ev) {
+    const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+    if (ev.key === 'Enter' && !ev.shiftKey && !ev.isComposing && !coarse) sendThreadMessage(ev);
+  });
+  document.getElementById('thread-input').addEventListener('input', function () {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 140) + 'px';
+  });
+
+  /* ---------- 一斉周知 ---------- */
+  function sendBroadcast() {
+    const body = document.getElementById('bc-body').value.trim();
+    const sel = document.getElementById('bc-target');
+    if (!body) { alert('メッセージを入力してください'); return; }
+    if (!confirm(sel.options[sel.selectedIndex].text + 'に送信します。メールでも通知されます。よろしいですか？')) return;
+    const btn = document.getElementById('bc-send');
+    btn.disabled = true; btn.textContent = '送信中…';
+    call('broadcast', state.detail.id, body, sel.value).then(function (r) {
+      document.getElementById('bc-body').value = '';
+      toast(r.sent + '人に送信しました' + (r.mailed < r.sent ? '（メールは' + r.mailed + '人）' : ''));
+    }).catch(function (e) {
+      alert(errText(e));
+    }).finally(function () {
+      btn.disabled = false; btn.textContent = '送信';
+    });
+  }
+
+  function savedListMode() {
+    try { return localStorage.getItem('gs_obog_view') === 'cal' ? 'cal' : 'list'; } catch (e) { return 'list'; }
+  }
 
   /* ---------- 共有 ---------- */
   function shareEvent() {
