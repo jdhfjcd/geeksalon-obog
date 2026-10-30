@@ -135,7 +135,7 @@
     box-shadow: 0 8px 24px rgba(255,98,83,.35); }
   .toast.show { opacity: 1; }
 
-  /* ヘッダーのメニュー・管理者チェック */
+  /* ヘッダーのメニュー・主催者チェック */
   header h1 { cursor: pointer; }
   .nav { display: flex; align-items: center; gap: 12px; }
   .nav-btn { padding: 6px 14px; font-size: 12px; font-weight: 700; background: var(--accent-weak); color: var(--accent); }
@@ -381,7 +381,6 @@
 <header>
   <h1 onclick="backToList()">GeekSalon OBOG イベントポータル</h1>
   <div class="nav">
-    <button class="nav-btn" id="nav-analytics" hidden onclick="openAnalytics()">分析</button>
     <button class="nav-btn" id="nav-login" hidden onclick="openLogin('')">ログイン</button>
     <span class="me" id="me"></span>
   </div>
@@ -427,12 +426,6 @@
   <section class="view" id="v-detail" hidden>
     <button class="btn-back" onclick="backToList()">‹ 一覧に戻る</button>
     <div id="detail"></div>
-  </section>
-
-  <!-- 分析（管理者） -->
-  <section class="view" id="v-analytics" hidden>
-    <button class="btn-back" onclick="backToList()">‹ 一覧に戻る</button>
-    <div id="analytics"></div>
   </section>
 
   <!-- イベント登録（ログインした全員） -->
@@ -515,7 +508,7 @@
   const INITIAL_EVENT = /^[A-Za-z0-9_-]{1,64}$/.test(QS.get('event') || '') ? QS.get('event') : '';
   const INITIAL_CHAT = /^[A-Za-z0-9-]{8,64}$/.test(QS.get('chat') || '') ? QS.get('chat') : '';
   const APP_URL = location.origin + location.pathname;
-  const state = { user: null, isAdmin: false, eventColors: ['#FF6253'], editingId: '', unread: 0, listMode: savedListMode(), calMonth: null, thread: null, sending: false, gradYears: [], targetFys: ['FY23', 'FY24', 'FY25', 'FY26', 'FY27'], events: [], detail: null, initialOpened: false };
+  const state = { user: null, eventColors: ['#FF6253'], editingId: '', unread: 0, listMode: savedListMode(), calMonth: null, thread: null, sending: false, gradYears: [], targetFys: ['FY23', 'FY24', 'FY25', 'FY26', 'FY27'], events: [], detail: null, initialOpened: false };
 
   /* ---------- 共通 ---------- */
   function getSession() { try { return localStorage.getItem(SESSION_KEY) || ''; } catch (e) { return ''; } }
@@ -643,27 +636,24 @@
   }
   function setHeader(data) {
     state.user = data.user;
-    state.isAdmin = data.isAdmin;
     state.gradYears = data.gradYears;
     if (data.targetFys) state.targetFys = data.targetFys;
     if (data.eventColors) state.eventColors = data.eventColors;
     document.getElementById('nav-login').hidden = !!data.loggedIn;
     document.getElementById('nav-logout').hidden = !data.loggedIn;
     if (!data.user) {
-      ['nav-analytics', 'nav-create', 'nav-chat'].forEach(function (id) { document.getElementById(id).hidden = true; });
+      ['nav-create', 'nav-chat'].forEach(function (id) { document.getElementById(id).hidden = true; });
       document.getElementById('me').textContent = '';
       return;
     }
-    document.getElementById('nav-analytics').hidden = !data.isAdmin;
     document.getElementById('nav-create').hidden = false;
     document.getElementById('nav-chat').hidden = false;
     setUnread(data.unread);
     document.getElementById('me').textContent =
-      data.user.name + '（' + data.user.gradYear + '）' + (data.isAdmin ? ' 管理者' : '');
+      data.user.name + '（' + data.user.gradYear + '）';
   }
   function applyInitial(data) {
     state.user = data.user;
-    state.isAdmin = data.isAdmin;
     state.gradYears = data.gradYears;
     state.events = data.events;
     setHeader(data);
@@ -759,7 +749,7 @@
     return '<ul class="members">' + list.map(function (p) {
       let right = '<span class="muted">' + esc(p.gradYear) + '</span>';
       if (opts.paid) {
-        if (state.detail.isAdmin && p.userId) {
+        if (state.detail.canManage && p.userId) {
           const flag = function (field, label, on) {
             return '<label class="paid-check"><input type="checkbox" ' + (on ? 'checked' : '') +
               ' onchange="toggleFlag(\'' + field + '\', \'' + esc(p.userId) + '\', this.checked, this)">' + label + '</label>';
@@ -871,7 +861,7 @@
 
       '<div class="card">' +
         '<h3>参加者（' + d.count + '人）</h3>' +
-        (d.isAdmin ? '<p class="muted">来場チェック：' + d.attendedCount + ' / ' + d.count + '人' + (d.isPast ? '' : '（当日・終了後にチェックしてね）') + '</p>' : '') +
+        (d.canManage ? '<p class="muted">来場チェック：' + d.attendedCount + ' / ' + d.count + '人' + (d.isPast ? '' : '（当日・終了後にチェックしてね）') + '</p>' : '') +
         (!d.loggedIn
           ? '<p class="muted">未定 ' + d.maybeCount + '人・不参加 ' + d.declineCount + '人</p>' +
             '<p class="muted">参加者の名前は、ログインすると見られます。</p>'
@@ -922,173 +912,6 @@
       el.checked = !value;
       el.disabled = false;
     });
-  }
-
-  /* ---------- 分析（管理者） ---------- */
-  const WD = ['', '月', '火', '水', '木', '金', '土', '日'];
-
-  function openAnalytics() {
-    show('v-loading');
-    call('getAnalytics').then(function (d) {
-      state.analytics = d;
-      if (!state.anaScope) state.anaScope = 'all';
-      renderAnalytics();
-      show('v-analytics');
-    }).catch(showError);
-  }
-  function setAnaScope(s) { state.anaScope = s; renderAnalytics(); }
-
-  function peopleOf(e) { return e.attendedIds || e.joinIds; }
-  function round1(n) { return Math.round(n * 10) / 10; }
-  function avg(arr) { return arr.length ? arr.reduce(function (a, b) { return a + b; }, 0) / arr.length : 0; }
-  function range(a, b) { const r = []; for (let i = a; i <= b; i++) r.push(i); return r; }
-
-  function bars(rows, fmt) {
-    if (!rows.length) return '<p class="muted">データがありません</p>';
-    const max = Math.max.apply(null, rows.map(function (r) { return r.value; })) || 1;
-    return rows.map(function (r) {
-      const pct = Math.round(r.value / max * 100);
-      const fill = (r.part !== undefined)
-        ? '<span class="bar-fill new" style="width:' + Math.round(r.part / max * 100) + '%"></span>' +
-          '<span class="bar-fill rest" style="width:' + (pct - Math.round(r.part / max * 100)) + '%"></span>'
-        : '<span class="bar-fill" style="width:' + pct + '%"></span>';
-      return '<div class="bar-row' + (r.best ? ' best' : '') + '">' +
-        '<span class="bar-label" title="' + esc(r.label) + '">' + esc(r.label) + '</span>' +
-        '<span class="bar-track">' + fill + '</span>' +
-        '<span class="bar-val">' + esc(fmt ? fmt(r.value) : r.value) + (r.sub ? '<small>' + esc(r.sub) + '</small>' : '') + '</span>' +
-      '</div>';
-    }).join('');
-  }
-  function markBest(rows) {
-    let best = null;
-    rows.forEach(function (r) { if (!best || r.value > best.value) best = r; });
-    if (best && best.value > 0) best.best = true;
-    return rows;
-  }
-  function insight(rows, text) {
-    const b = rows.find(function (r) { return r.best; });
-    return (b && rows.length > 1) ? '<p class="insight">' + text(b) + '</p>' : '';
-  }
-  /** keyFn でまとめて、1回あたりの平均人数を出す */
-  function groupAvg(evs, keyFn, labelFn, order) {
-    const g = {};
-    evs.forEach(function (e) {
-      const k = keyFn(e);
-      if (k === null || k === undefined || k === '') return;
-      (g[k] = g[k] || []).push(peopleOf(e).length);
-    });
-    const keys = (order || Object.keys(g).sort()).filter(function (k) { return g[k]; });
-    return markBest(keys.map(function (k) {
-      return { label: labelFn ? labelFn(k) : String(k), value: round1(avg(g[k])), sub: g[k].length + '回' };
-    }));
-  }
-  function card(title, body) {
-    return '<div class="card"><h3>' + title + '</h3>' + body + '</div>';
-  }
-
-  function renderAnalytics() {
-    const a = state.analytics;
-    const scope = state.anaScope;
-    const evs = a.events.filter(function (e) { return scope === 'all' || e.past; });
-    const userCount = a.users.length;
-    const usersById = {};
-    a.users.forEach(function (u) { usersById[u.userId] = u; });
-
-    const head = '<div class="ana-head"><h2>参加者分析</h2><div class="seg">' +
-      '<button class="' + (scope === 'all' ? 'on' : '') + '" onclick="setAnaScope(\'all\')">すべて</button>' +
-      '<button class="' + (scope === 'past' ? 'on' : '') + '" onclick="setAnaScope(\'past\')">終了したイベント</button>' +
-      '</div></div>' +
-      '<p class="muted ana-note">人数は、来場チェックをつけたイベントは「実際に来た人数」、まだのイベントは「参加と回答した人数」で数えています。</p>';
-
-    if (!evs.length) {
-      document.getElementById('analytics').innerHTML = head + '<div class="card center">対象のイベントがまだありません</div>';
-      return;
-    }
-
-    // 人ごとの参加回数
-    const times = {};
-    evs.forEach(function (e) { peopleOf(e).forEach(function (id) { times[id] = (times[id] || 0) + 1; }); });
-    const participants = Object.keys(times).filter(function (id) { return usersById[id]; });
-    const repeaters = participants.filter(function (id) { return times[id] >= 2; }).length;
-
-    // 来場率（参加と回答した人のうち、実際に来た人）
-    let joined = 0, came = 0;
-    evs.forEach(function (e) {
-      if (!e.attendedIds) return;
-      joined += e.joinIds.length;
-      came += e.joinIds.filter(function (id) { return e.attendedIds.indexOf(id) !== -1; }).length;
-    });
-
-    const kpis = [
-      ['開催数', evs.length + '回'],
-      ['平均参加人数', round1(avg(evs.map(function (e) { return peopleOf(e).length; }))) + '人'],
-      ['参加経験あり', participants.length + ' / ' + userCount + '人'],
-      ['リピーター率', participants.length ? Math.round(repeaters / participants.length * 100) + '%' : '-'],
-      ['来場率', joined ? Math.round(came / joined * 100) + '%' : '-'],
-      ['回答率', userCount ? Math.round(avg(evs.map(function (e) { return Math.min(1, e.answered / userCount); })) * 100) + '%' : '-']
-    ].map(function (k) { return '<div class="kpi"><div class="l">' + k[0] + '</div><div class="v">' + k[1] + '</div></div>'; }).join('');
-
-    const personFmt = function (v) { return v + '人'; };
-
-    // 曜日・時間帯・月・場所
-    const byWd = groupAvg(evs, function (e) { return e.weekday; }, function (k) { return WD[k] + '曜'; }, range(1, 7));
-    const byHour = groupAvg(evs, function (e) { return e.hour; }, function (k) { return k + '時〜'; }, range(0, 23));
-    const byMonth = groupAvg(evs, function (e) { return e.ym; }, function (k) { return k.replace('/', '年') + '月'; });
-    const byPlace = groupAvg(evs, function (e) { return e.place; });
-    byPlace.sort(function (x, y) { return y.value - x.value; });
-
-    // 卒業年度別の参加率
-    const byGrad = markBest(a.gradYears.map(function (g) {
-      const members = a.users.filter(function (u) { return u.gradYear === g; });
-      if (!members.length) return null;
-      const came = members.filter(function (u) { return times[u.userId]; });
-      const total = members.reduce(function (s, u) { return s + (times[u.userId] || 0); }, 0);
-      return { label: g, value: Math.round(came.length / members.length * 100), sub: came.length + '/' + members.length + '人・延べ' + total + '回' };
-    }).filter(Boolean));
-
-    // 新規とリピーターの推移（直近12回）
-    const seen = {};
-    const flow = evs.map(function (e) {
-      const ids = peopleOf(e);
-      const fresh = ids.filter(function (id) { return !seen[id]; }).length;
-      ids.forEach(function (id) { seen[id] = true; });
-      return { label: e.dateText.slice(5, 10), value: ids.length, part: fresh, sub: '新規' + fresh };
-    }).slice(-12);
-
-    // 常連ランキング
-    const ranking = participants
-      .sort(function (x, y) { return times[y] - times[x]; })
-      .slice(0, 10)
-      .map(function (id) { const u = usersById[id]; return { label: u.name + '（' + u.gradYear + '）', value: times[id] }; });
-
-    document.getElementById('analytics').innerHTML = head +
-      '<div class="kpis">' + kpis + '</div>' +
-      '<div class="ana-grid">' +
-        card('曜日別の平均参加人数',
-          insight(byWd, function (b) { return '一番集まるのは <b>' + b.label + '</b>（平均' + b.value + '人）'; }) + bars(byWd, personFmt)) +
-        card('開始時間別の平均参加人数',
-          insight(byHour, function (b) { return '一番集まるのは <b>' + b.label + '</b> の回（平均' + b.value + '人）'; }) +
-          (byHour.length ? bars(byHour, personFmt) : '<p class="muted">time 列に開始時間を入れると集計されます</p>')) +
-        card('月ごとの平均参加人数',
-          insight(byMonth, function (b) { return 'ピークは <b>' + b.label + '</b>（平均' + b.value + '人）'; }) + bars(byMonth, personFmt)) +
-        card('卒業年度別の参加率',
-          insight(byGrad, function (b) { return '参加率が一番高いのは <b>' + b.label + '</b>（' + b.value + '%）'; }) +
-          bars(byGrad, function (v) { return v + '%'; })) +
-        card('新規とリピーター（直近12回）',
-          '<div class="legend"><span><i class="new"></i>初参加</span><span><i class="rest"></i>2回目以上</span></div>' + bars(flow, personFmt)) +
-        card('場所別の平均参加人数', bars(byPlace, personFmt)) +
-        card('よく来てくれる人 TOP10', bars(ranking, function (v) { return v + '回'; })) +
-      '</div>';
-  }
-
-  /* ---------- 対象・内容 ---------- */
-  function taisyoTags(list) {
-    return list.map(function (g) {
-      return '<span class="tag">' + esc(g) + '</span>';
-    }).join('');
-  }
-  function linkify(escaped) {
-    return escaped.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
   }
 
   /* ---------- イベント登録（ログインした全員） ---------- */
