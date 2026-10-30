@@ -235,7 +235,6 @@
   <div class="nav">
     <button class="nav-btn" id="nav-create" hidden onclick="openCreate()">＋<span class="lbl"> イベント登録</span></button>
     <button class="nav-btn" id="nav-analytics" hidden onclick="openAnalytics()">分析</button>
-    <button class="nav-btn ghost" id="nav-request" hidden onclick="openRequest()">管理者申請</button>
     <button class="nav-btn" id="nav-login" hidden onclick="openLogin('')">ログイン</button>
     <span class="me" id="me"></span>
   </div>
@@ -285,7 +284,7 @@
     <div id="analytics"></div>
   </section>
 
-  <!-- イベント登録（管理者） -->
+  <!-- イベント登録（ログインした全員） -->
   <section class="view" id="v-create" hidden>
     <button class="btn-back" onclick="backToList()">‹ 一覧に戻る</button>
     <div class="card form-card">
@@ -309,16 +308,6 @@
     </div>
   </section>
 
-  <!-- 管理者申請 -->
-  <section class="view" id="v-request" hidden>
-    <button class="btn-back" onclick="backToList()">‹ 一覧に戻る</button>
-    <div class="card form-card narrow" id="request-box"></div>
-  </section>
-
-  <!-- 申請の承認・却下（メールのボタンから） -->
-  <section class="view" id="v-decide" hidden>
-    <div class="card form-card narrow" id="decide-box"></div>
-  </section>
   <!-- ログイン -->
   <section class="view" id="v-login" hidden>
     <button class="btn-back" onclick="backToList()">‹ 一覧に戻る</button>
@@ -346,10 +335,8 @@
 
   const QS = new URLSearchParams(location.search);
   const INITIAL_EVENT = /^[A-Za-z0-9_-]{1,64}$/.test(QS.get('event') || '') ? QS.get('event') : '';
-  const ACTION = QS.get('approve') ? 'approve' : (QS.get('reject') ? 'reject' : '');
-  const TOKEN = (QS.get('approve') || QS.get('reject') || '').replace(/[^A-Za-z0-9]/g, '');
   const APP_URL = location.origin + location.pathname;
-  const state = { user: null, isAdmin: false, adminRequest: '', decided: false, gradYears: [], events: [], detail: null, initialOpened: false };
+  const state = { user: null, isAdmin: false, gradYears: [], events: [], detail: null, initialOpened: false };
 
   /* ---------- 共通 ---------- */
   function getSession() { try { return localStorage.getItem(SESSION_KEY) || ''; } catch (e) { return ''; } }
@@ -412,7 +399,6 @@
       toast('ログインしました');
       const back = state.returnEvent;
       state.returnEvent = '';
-      if (ACTION && TOKEN && !state.decided) { boot(); return; }
       applyInitial(d.initial);
       if (back && d.initial.user) openDetail(back);
     }).catch(showError);
@@ -473,34 +459,21 @@
   /* ---------- 起動 ---------- */
   function boot() {
     show('v-loading');
-    if (ACTION && TOKEN && !state.decided) {
-      if (!getSession()) {
-        openLogin('申請を処理するには、管理者のGoogleアカウントでログインしてください。');
-        return;
-      }
-      state.decided = true;
-      call('decideAdminRequest', TOKEN, ACTION).then(renderDecision).catch(showError);
-      return;
-    }
     call('getInitialData').then(applyInitial).catch(showError);
   }
   function setHeader(data) {
     state.user = data.user;
     state.isAdmin = data.isAdmin;
     state.gradYears = data.gradYears;
-    state.adminRequest = data.adminRequest || '';
     document.getElementById('nav-login').hidden = !!data.loggedIn;
     document.getElementById('nav-logout').hidden = !data.loggedIn;
     if (!data.user) {
-      ['nav-analytics', 'nav-create', 'nav-request'].forEach(function (id) { document.getElementById(id).hidden = true; });
+      ['nav-analytics', 'nav-create'].forEach(function (id) { document.getElementById(id).hidden = true; });
       document.getElementById('me').textContent = '';
       return;
     }
     document.getElementById('nav-analytics').hidden = !data.isAdmin;
-    document.getElementById('nav-create').hidden = !data.isAdmin;
-    const req = document.getElementById('nav-request');
-    req.hidden = !!data.isAdmin;
-    req.textContent = state.adminRequest === 'pending' ? '申請中' : '管理者申請';
+    document.getElementById('nav-create').hidden = false;
     document.getElementById('me').textContent =
       data.user.name + '（' + data.user.gradYear + '）' + (data.isAdmin ? ' 管理者' : '');
   }
@@ -912,7 +885,7 @@
     return escaped.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
   }
 
-  /* ---------- イベント登録（管理者） ---------- */
+  /* ---------- イベント登録（ログインした全員） ---------- */
   function openCreate() {
     document.getElementById('create-form').reset();
     document.getElementById('c-taisyo').innerHTML = state.gradYears.map(function (g) {
@@ -940,54 +913,6 @@
       btn.disabled = false; btn.textContent = '登録する';
     });
   });
-
-  /* ---------- 管理者申請 ---------- */
-  function openRequest() {
-    const box = document.getElementById('request-box');
-    if (state.adminRequest === 'pending') {
-      box.innerHTML = '<h2>申請中です</h2>' +
-        '<p class="muted">承認されると、イベント登録や参加者分析が使えるようになります。承認されたらページを開き直してね。</p>';
-    } else {
-      box.innerHTML = '<h2>管理者権限を申請</h2>' +
-        '<p class="muted">承認されると、イベントの登録・集金/来場チェック・参加者分析が使えるようになります。</p>' +
-        (state.adminRequest === 'rejected' ? '<p class="muted">前回の申請は承認されませんでした。内容を変えて再申請できます。</p>' : '') +
-        '<form id="req-form">' +
-          '<label for="req-club">所属（部活・コミュニティ名）</label>' +
-          '<input id="req-club" maxlength="50" required placeholder="例：フットサル部">' +
-          '<label for="req-reason">申請理由・開催したいイベント</label>' +
-          '<textarea id="req-reason" rows="4" maxlength="500" required placeholder="例：毎月フットサル会を主催したいです"></textarea>' +
-          '<button class="btn-main" type="submit" id="req-submit">申請する</button>' +
-        '</form>';
-      document.getElementById('req-form').addEventListener('submit', submitRequest);
-    }
-    show('v-request');
-  }
-  function submitRequest(ev) {
-    ev.preventDefault();
-    const btn = document.getElementById('req-submit');
-    btn.disabled = true; btn.textContent = '送信中…';
-    call('requestAdmin', document.getElementById('req-club').value, document.getElementById('req-reason').value)
-      .then(function (data) {
-        setHeader(data);
-        toast('申請しました');
-        openRequest();
-      }).catch(function (e) {
-        alert(errText(e));
-        btn.disabled = false; btn.textContent = '申請する';
-      });
-  }
-  function renderDecision(r) {
-    const who = esc(r.name) + '（' + esc(r.gradYear) + '・' + esc(r.club) + '）';
-    const done = { approved: '承認済み', rejected: '却下済み' }[r.already] || r.already;
-    document.getElementById('decide-box').innerHTML =
-      (r.already
-        ? '<h2>この申請はすでに' + esc(done) + 'です</h2><p class="muted">' + who + '</p>'
-        : '<h2>' + (r.decision === 'approve' ? '承認しました' : '却下しました') + '</h2>' +
-          '<p class="muted">' + who + (r.decision === 'approve' ? 'さんを管理者にしました。' : 'さんの申請を却下しました。') + '</p>') +
-      '<button class="btn-main" onclick="backToList()">トップへ</button>';
-    show('v-decide');
-    call('getInitialData').then(setHeader).catch(function () {});
-  }
 
   /* ---------- 共有 ---------- */
   function shareEvent() {
