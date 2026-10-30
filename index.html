@@ -127,6 +127,12 @@
   a { color: var(--accent); }
   .route-form { display: flex; gap: 8px; }
   .route-form input { flex: 1; }
+  .route-plan { margin: 14px 0 4px; padding: 12px 14px; background: var(--soft); border-radius: 12px; }
+  .route-line { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .route-mid { margin: 4px 0 4px 4px; padding: 6px 0 6px 14px; border-left: 2px dashed var(--line); font-size: 12px; color: var(--sub); }
+  .route-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--sub); flex: none; }
+  .route-dot.end { background: var(--accent); }
+  a.btn-main.route-go { display: block; text-align: center; text-decoration: none; border-radius: 999px; box-sizing: border-box; }
   .route-form button { background: var(--accent); color: #fff; white-space: nowrap; font-weight: 700; border-radius: 12px; }
   .error-box { color: var(--accent); }
   .share-box { margin-top: 10px; }
@@ -442,6 +448,7 @@
           <div><label for="c-end">終了</label><input id="c-end" type="time"></div>
         </div>
         <div><label for="c-place">場所</label><input id="c-place" maxlength="100" placeholder="例：皇居外苑"></div>
+        <div><label for="c-station">最寄り駅</label><input id="c-station" maxlength="30" placeholder="例：二重橋前"></div>
         <div><label for="c-url">場所のURL（Googleマップなど）</label><input id="c-url" type="url" placeholder="https://"></div>
         <div><label for="c-price">料金（総額・円）</label><input id="c-price" type="number" min="0" step="1" inputmode="numeric" placeholder="例：3000"><p class="field-note">※ 全員分の合計金額を入れてください。1人あたりの金額は参加人数で割って自動で表示されます（イベント後は実際に来た人数で計算し直します）</p></div>
         <div><label for="c-deadline">出欠の締切</label><input id="c-deadline" type="date"></div>
@@ -789,8 +796,9 @@
     const routeCard = d.place ?
       '<div class="card route-card">' +
         '<h3>経路検索</h3>' +
+        '<p class="muted">開始の10分前に' + esc(d.station ? d.station + '駅' : '会場') + 'へ着くルートを調べます</p>' +
         '<form class="route-form" id="route-form">' +
-          '<input id="route-origin" placeholder="出発駅（例：吉祥寺）" required>' +
+          '<input id="route-origin" placeholder="出発駅（例：吉祥寺）" required value="' + esc(savedOrigin()) + '">' +
           '<button type="submit">検索</button>' +
         '</form>' +
         '<div id="route-result"></div>' +
@@ -804,6 +812,7 @@
           '<dt>開催日</dt><dd>' + esc(d.dateText) + (d.time ? ' ' + esc(d.time) : '') + '</dd>' +
           '<dt>場所</dt><dd>' + esc(d.place || '未定') +
             (d.urlPlace ? '<br><a href="' + esc(d.urlPlace) + '" target="_blank" rel="noopener">施設ページを開く</a>' : '') + '</dd>' +
+          (d.station ? '<dt>最寄り駅</dt><dd>' + esc(d.station) + '駅</dd>' : '') +
           '<dt>料金（総額）</dt><dd>' + (d.price === null ? '未設定' : yen(d.price)) + '</dd>' +
           '<dt>持ち物</dt><dd>' + esc(d.item || '-') + '</dd>' +
           '<dt>締切</dt><dd>' + esc(d.deadlineText || '-') + (locked ? '（締切済み）' : '') + '</dd>' +
@@ -953,7 +962,7 @@
       const hm = String(ev.time || '').match(/(\d{1,2}):(\d{2})(?:\D+(\d{1,2}):(\d{2}))?/);
       set('c-sports', ev.sports); set('c-date', ev.dateIso);
       set('c-start', hm ? pad2(hm[1]) + ':' + hm[2] : ''); set('c-end', hm && hm[3] ? pad2(hm[3]) + ':' + hm[4] : '');
-      set('c-place', ev.place); set('c-url', ev.urlPlace); set('c-price', ev.price);
+      set('c-place', ev.place); set('c-station', ev.station); set('c-url', ev.urlPlace); set('c-price', ev.price);
       set('c-deadline', ev.deadlineIso); set('c-item', ev.item); set('c-detail', ev.detail);
     }
     show('v-create');
@@ -966,7 +975,7 @@
     const v = function (id) { return document.getElementById(id).value; };
     const form = {
       sports: v('c-sports'), date: v('c-date'), start: v('c-start'), end: v('c-end'),
-      place: v('c-place'), urlPlace: v('c-url'), price: v('c-price'), deadline: v('c-deadline'),
+      place: v('c-place'), station: v('c-station'), urlPlace: v('c-url'), price: v('c-price'), deadline: v('c-deadline'),
       item: v('c-item'), detail: v('c-detail'),
       taisyo: Array.prototype.map.call(document.querySelectorAll('#c-taisyo input:checked'), function (i) { return i.value; }),
       color: (document.querySelector('#c-color input:checked') || {}).value || ''
@@ -1235,15 +1244,46 @@
   }
 
   /* ---------- 経路検索 ---------- */
+  /** 開始時刻の10分前に最寄り駅へ着くルートを、Yahoo!乗換案内で調べる */
   function searchRoute(ev) {
     ev.preventDefault();
-    let origin = document.getElementById('route-origin').value.trim();
+    const origin = document.getElementById('route-origin').value.trim().replace(/駅$/, '');
     if (!origin) return;
-    if (!/駅$/.test(origin)) origin += '駅';
-    const place = state.detail.place;
-    document.getElementById('route-result').innerHTML =
-      '<iframe class="map route-map" src="' + esc(routeEmbedUrl(origin, place)) + '"></iframe>' +
-      '<p><a href="' + esc(routeAppUrl(origin, place)) + '" target="_blank" rel="noopener">Googleマップのアプリで開く</a></p>';
+    try { localStorage.setItem('gs_obog_origin', origin); } catch (e) {}
+    const d = state.detail;
+    const dest = d.station || d.place;
+    const box = document.getElementById('route-result');
+    const dm = String(d.dateIso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    const tm = String(d.time || '').match(/(\d{1,2}):(\d{2})/);
+    const q = { from: origin, to: dest, ticket: 'ic', expkind: '1', ws: '3', s: '0' };
+    let label = '';
+    if (dm && tm) {
+      const at = new Date(Number(dm[1]), Number(dm[2]) - 1, Number(dm[3]), Number(tm[1]), Number(tm[2]) - 10);
+      q.y = at.getFullYear(); q.m = pad2(at.getMonth() + 1); q.d = pad2(at.getDate());
+      q.hh = at.getHours(); q.m1 = Math.floor(at.getMinutes() / 10); q.m2 = at.getMinutes() % 10;
+      q.type = '4';
+      label = (at.getMonth() + 1) + '/' + at.getDate() + ' ' + at.getHours() + ':' + pad2(at.getMinutes()) + ' までに';
+    }
+    const url = 'https://transit.yahoo.co.jp/search/result?' + Object.keys(q).map(function (k) {
+      return k + '=' + encodeURIComponent(q[k]);
+    }).join('&');
+    box.innerHTML =
+      '<div class="route-plan">' +
+        '<div class="route-line"><span class="route-dot"></span><b>' + esc(origin) + '駅</b></div>' +
+        '<div class="route-line route-mid">電車</div>' +
+        '<div class="route-line"><span class="route-dot end"></span><b>' + esc(dest) + (d.station ? '駅' : '') + '</b>' +
+          (label ? '<span class="muted">　' + esc(label) + '到着（開始10分前）</span>' : '') + '</div>' +
+      '</div>' +
+      '<a class="btn-main route-go" href="' + esc(url) + '" target="_blank" rel="noopener">乗換案内で路線・時刻を見る</a>' +
+      '<p class="muted small">Yahoo!乗換案内が開き、乗る駅・路線・乗り換え・発車時刻と到着時刻・運賃が表示されます。</p>' +
+      (d.station ? '' : '<p class="muted small">※最寄り駅が未設定のため、場所の名前で検索しています。うまく出ないときは主催者に最寄り駅を設定してもらってください。</p>') +
+      '<details><summary>地図で道すじを見る</summary>' +
+        '<iframe class="map route-map" src="' + esc(routeEmbedUrl(origin + '駅', d.place)) + '"></iframe>' +
+        '<p><a href="' + esc(routeAppUrl(origin + '駅', d.place)) + '" target="_blank" rel="noopener">Googleマップで開く</a></p>' +
+      '</details>';
+  }
+  function savedOrigin() {
+    try { return localStorage.getItem('gs_obog_origin') || ''; } catch (e) { return ''; }
   }
 
   // ホーム画面に追加したときにアプリとして動かす
