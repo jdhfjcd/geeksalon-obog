@@ -158,7 +158,7 @@
   .login-card { text-align: center; }
   .gsi-box { color-scheme: light; display: flex; justify-content: center; min-height: 44px; margin: 20px 0 12px; }
   .small { font-size: 12px; }
-  footer { max-width: 1100px; margin: 0 auto; padding: 8px 16px 40px; display: flex; gap: 16px; justify-content: center;
+  footer { max-width: 1100px; margin: 0 auto; padding: 8px 16px 112px; display: flex; gap: 16px; justify-content: center;
     font-size: 12px; color: var(--sub); }
   footer a { color: var(--sub); }
   .link-btn { background: none; border: none; padding: 0; color: var(--sub); font-size: 12px; text-decoration: underline; border-radius: 0; }
@@ -278,6 +278,22 @@
     .thread-box { height: calc(100vh - 150px); height: calc(100dvh - 150px); }
   }
 
+  /* 右下の丸ボタン（チャット・イベント登録） */
+  .fab-stack { position: fixed; right: max(20px, env(safe-area-inset-right)); bottom: calc(20px + env(safe-area-inset-bottom));
+    display: flex; flex-direction: column; align-items: center; gap: 14px; z-index: 30; }
+  .fab { position: relative; width: 52px; height: 52px; padding: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    background: var(--card); color: var(--pink); border: 1px solid var(--line); box-shadow: 0 10px 28px rgba(0,0,0,.55); }
+  .fab:hover { border-color: var(--pink); }
+  .fab.main { width: 60px; height: 60px; background: var(--pink); color: #fff; border: none; box-shadow: 0 10px 28px rgba(255,45,135,.45); }
+  .fab.main:hover { background: var(--pink-hover); }
+  .fab[hidden] { display: none; }
+  .fab .nav-badge { top: -4px; right: -4px; background: var(--pink); color: #fff; box-shadow: 0 0 0 2px var(--bg); }
+  body[data-view="v-thread"] .fab-stack, body[data-view="v-create"] .fab-stack, body[data-view="v-login"] .fab-stack,
+  body[data-view="v-register"] .fab-stack, body[data-view="v-loading"] .fab-stack { display: none; }
+  @media (min-width: 900px) {
+    .fab-stack { right: max(32px, calc((100% - 1100px) / 2 - 40px)); bottom: 32px; }
+  }
+
   /* 詳細画面：スマホは1列（経路検索は一番下）、PCは2列 */
   .detail-grid { display: flex; flex-direction: column; }
   .col-main, .col-side { display: contents; }
@@ -319,8 +335,6 @@
 <header>
   <h1 onclick="backToList()">GeekSalon OBOG イベントポータル</h1>
   <div class="nav">
-    <button class="nav-btn" id="nav-chat" hidden onclick="openChats()">💬<span class="lbl"> チャット</span><span class="nav-badge" id="chat-badge" hidden></span></button>
-    <button class="nav-btn" id="nav-create" hidden onclick="openCreate()">＋<span class="lbl"> イベント登録</span></button>
     <button class="nav-btn" id="nav-analytics" hidden onclick="openAnalytics()">分析</button>
     <button class="nav-btn" id="nav-login" hidden onclick="openLogin('')">ログイン</button>
     <span class="me" id="me"></span>
@@ -436,6 +450,12 @@
   <button class="link-btn" id="nav-logout" hidden onclick="logout()">ログアウト</button>
 </footer>
 
+<!-- 右下の丸ボタン -->
+<div class="fab-stack">
+  <button class="fab" id="nav-chat" hidden onclick="openChats()" aria-label="チャット" title="チャット"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-5A8 8 0 1 1 21 12z"/></svg><span class="nav-badge" id="chat-badge" hidden></span></button>
+  <button class="fab main" id="nav-create" hidden onclick="openCreate()" aria-label="イベントを登録" title="イベントを登録"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -525,6 +545,7 @@
     boot();
   }
   function show(id) {
+    document.body.dataset.view = id;
     document.querySelectorAll('.view').forEach(function (v) { v.hidden = v.id !== id; });
     window.scrollTo(0, 0);
   }
