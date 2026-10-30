@@ -450,18 +450,18 @@
           </div>
         </div>
         <label for="reg-name">氏名</label>
-        <input id="reg-name" maxlength="30" required placeholder="例：石田 のぞみ" oninput="updateNamePreview()">
+        <input id="reg-name" maxlength="30" required placeholder="例：石田 のぞみ" oninput="setProfAvatar(state.prof.avatar)">
         <label for="reg-display">表示名（任意）</label>
-        <input id="reg-display" maxlength="30" placeholder="例：のぞみん" oninput="updateNamePreview()">
+        <input id="reg-display" maxlength="30">
         <p class="field-note">名字や名前、ニックネームなど、呼ばれたい名前にできます。</p>
         <label for="reg-title">タイトル（任意）</label>
-        <input id="reg-title" maxlength="50" placeholder="例：フットサル部の部長、東京で営業してます">
+        <input id="reg-title" maxlength="50">
         <p class="field-note">あなたの役割やひとことを書けます。参加者一覧などに表示されます。</p>
         <label for="reg-grad">卒業年度</label>
         <select id="reg-grad" required></select>
-        <label>サイトでの名前の表示</label>
+        <label>メンバーの名前の表示（あなたの画面だけ）</label>
         <div class="seg mode-seg" id="reg-mode">
-          <button type="button" data-m="name" onclick="setNameMode('name')">氏名</button><button type="button" data-m="display" onclick="setNameMode('display')">表示名</button>
+          <button type="button" data-m="name" onclick="setNameMode('name')">氏名で統一</button><button type="button" data-m="display" onclick="setNameMode('display')">表示名で統一</button>
         </div>
         <p class="field-note" id="name-preview"></p>
         <button class="btn-main" type="submit" id="reg-submit">登録する</button>
@@ -575,7 +575,7 @@
   const INITIAL_EVENT = /^[A-Za-z0-9_-]{1,64}$/.test(QS.get('event') || '') ? QS.get('event') : '';
   const INITIAL_CHAT = /^[A-Za-z0-9-]{8,64}$/.test(QS.get('chat') || '') ? QS.get('chat') : '';
   const APP_URL = location.origin + location.pathname;
-  const state = { user: null, eventColors: ['#FF6253'], editingId: '', unread: 0, listMode: savedListMode(), calMonth: null, thread: null, sending: false, gradYears: [], targetFys: ['FY23', 'FY24', 'FY25', 'FY26', 'FY27'], events: [], detail: null, initialOpened: false };
+  const state = { user: null, viewMode: 'name', eventColors: ['#FF6253'], editingId: '', unread: 0, listMode: savedListMode(), calMonth: null, thread: null, sending: false, gradYears: [], targetFys: ['FY23', 'FY24', 'FY25', 'FY26', 'FY27'], events: [], detail: null, initialOpened: false };
 
   /* ---------- 共通 ---------- */
   function getSession() { try { return localStorage.getItem(SESSION_KEY) || ''; } catch (e) { return ''; } }
@@ -721,6 +721,7 @@
   }
   function setHeader(data) {
     state.user = data.user;
+    state.viewMode = data.user && data.user.nameMode === 'display' ? 'display' : 'name';
     state.email = data.email;
     state.gradYears = data.gradYears;
     if (data.targetFys) state.targetFys = data.targetFys;
@@ -737,8 +738,9 @@
     setUnread(data.unread);
     const me = document.getElementById('me');
     me.hidden = false;
-    me.innerHTML = avatarHtml(data.user.name, data.user.avatar, 'sm') +
-      '<span class="me-name">' + esc(data.user.name) + '<small>' + esc(data.user.gradYear) + '</small></span>';
+    const myName = nm(data.user.realName || data.user.name, data.user.displayName);
+    me.innerHTML = avatarHtml(myName, data.user.avatar, 'sm') +
+      '<span class="me-name">' + esc(myName) + '<small>' + esc(data.user.gradYear) + '</small></span>';
   }
   function applyInitial(data) {
     state.user = data.user;
@@ -807,16 +809,13 @@
   function setNameMode(m) {
     state.prof.nameMode = m;
     document.querySelectorAll('#reg-mode button').forEach(function (b) { b.classList.toggle('on', b.dataset.m === m); });
-    updateNamePreview();
+    document.getElementById('name-preview').textContent = m === 'display'
+      ? 'あなたが見るとき、参加者やチャットの名前を表示名で表示します（表示名がない人は氏名）。'
+      : 'あなたが見るとき、参加者やチャットの名前を氏名で表示します。';
   }
-  function updateNamePreview() {
-    const real = document.getElementById('reg-name').value.trim();
-    const disp = document.getElementById('reg-display').value.trim();
-    const shown = state.prof.nameMode === 'display' ? (disp || real) : real;
-    document.getElementById('name-preview').textContent =
-      (state.prof.nameMode === 'display' && !disp ? '表示名が空のときは氏名で表示されます。' : '') +
-      'サイトでは「' + (shown || '（未入力）') + '」と表示されます。';
-    if (!state.prof.avatar) setProfAvatar('');
+  /** 見る人の設定に合わせて、氏名か表示名を返す */
+  function nm(name, disp) {
+    return state.viewMode === 'display' && disp ? disp : name;
   }
   /** 選んだ画像を正方形に切り抜いて小さくする */
   document.getElementById('prof-file').addEventListener('change', function () {
@@ -930,8 +929,9 @@
           right = p.paid ? '<span class="badge join">支払済</span>' : '';
         }
       }
-      return '<li><div class="member-top"><span class="member-name">' + avatarHtml(p.name, p.avatar, 'sm') +
-        '<span class="member-text"><span>' + esc(p.name) + (opts.paid ? ' <span class="muted">' + esc(p.gradYear) + '</span>' : '') + '</span>' +
+      const pn = nm(p.name, p.disp);
+      return '<li><div class="member-top"><span class="member-name">' + avatarHtml(pn, p.avatar, 'sm') +
+        '<span class="member-text"><span>' + esc(pn) + (opts.paid ? ' <span class="muted">' + esc(p.gradYear) + '</span>' : '') + '</span>' +
         (p.title ? '<span class="member-title">' + esc(p.title) + '</span>' : '') + '</span></span>' + right + '</div>' +
         (p.comment ? '<div class="member-comment">💬 ' + esc(p.comment) + '</div>' : '') + '</li>';
     }).join('') + '</ul>';
@@ -982,7 +982,8 @@
           '<dt>持ち物</dt><dd>' + esc(d.item || '-') + '</dd>' +
           '<dt>締切</dt><dd>' + esc(d.deadlineText || '-') + (locked ? '（締切済み）' : '') + '</dd>' +
           (d.taisyo && d.taisyo.length ? '<dt>対象</dt><dd><div class="tags">' + taisyoTags(d.taisyo) + '</div></dd>' : '') +
-          (d.organizer ? '<dt>主催</dt><dd>' + esc(d.organizer) + '</dd>' : '') +
+          (d.organizerName ? '<dt>主催</dt><dd>' + esc(nm(d.organizerName, d.organizerDisp) + '（' + d.organizerGrad + '）') + '</dd>'
+            : d.organizer ? '<dt>主催</dt><dd>' + esc(d.organizer) + '</dd>' : '') +
           extras +
         '</dl>' +
         (d.place ? '<iframe class="map" loading="lazy" src="' + esc(mapEmbedUrl(d.place)) + '"></iframe>' : '') +
@@ -1272,14 +1273,16 @@
     }
     box.innerHTML = list.map(function (t) {
       const group = t.type === 'group';
-      const prev = (t.lastFrom ? t.lastFrom + '：' : '') + t.lastBody.replace(/\s+/g, ' ');
+      const tname = group ? t.name : nm(t.name, t.disp);
+      const from = t.lastFrom === 'あなた' ? 'あなた' : nm(t.lastFrom, t.lastFromDisp);
+      const prev = (from ? from + '：' : '') + t.lastBody.replace(/\s+/g, ' ');
       const avatar = group
         ? '<span class="avatar group" style="background:' + esc(t.color || '#FF6253') + ';color:' + textOn(t.color) + '">' + esc(t.name.charAt(0)) + '</span>'
-        : (t.avatar ? '<img class="avatar" src="' + esc(t.avatar) + '" alt="">' : '<span class="avatar">' + esc(t.name.charAt(0)) + '</span>');
+        : (t.avatar ? '<img class="avatar" src="' + esc(t.avatar) + '" alt="">' : '<span class="avatar">' + esc(tname.charAt(0)) + '</span>');
       return '<button class="chat-item' + (t.unread ? ' has-unread' : '') + '" onclick="' + (group ? 'openGroup' : 'openThread') + '(\'' + esc(t.id) + '\')">' +
         avatar +
         '<span class="chat-main">' +
-          '<span class="chat-top"><span class="chat-name">' + (group ? '<span class="chat-kind">グループ</span>' : '') + esc(t.name) +
+          '<span class="chat-top"><span class="chat-name">' + (group ? '<span class="chat-kind">グループ</span>' : '') + esc(tname) +
             ' <span class="muted">' + esc(t.sub) + '</span></span>' +
             '<span class="chat-time">' + (t.lastAt ? fmtTime(t.lastAt) : '') + '</span></span>' +
           '<span class="chat-bottom"><span class="chat-prev">' + esc(prev) + '</span>' +
@@ -1315,7 +1318,7 @@
       ? '<span class="thread-peer"><span class="ev-dot" style="--ev:' + esc(t.event.color || '#FF6253') + '"></span>' + esc(t.event.sports) + '</span>' +
         ' <span class="muted">' + esc(t.event.dateText) + '・' + t.memberCount + '人</span>' +
         ' <a href="#" class="small" onclick="openDetail(\'' + esc(t.event.id) + '\');return false">イベントを見る</a>'
-      : avatarHtml(t.peer.name, t.peer.avatar, 'sm') + ' <span class="thread-peer">' + esc(t.peer.name) + '</span> <span class="muted">' + esc(t.peer.gradYear) + '</span>' +
+      : avatarHtml(nm(t.peer.name, t.peer.disp), t.peer.avatar, 'sm') + ' <span class="thread-peer">' + esc(nm(t.peer.name, t.peer.disp)) + '</span> <span class="muted">' + esc(t.peer.gradYear) + '</span>' +
         (t.peer.title ? '<div class="member-title">' + esc(t.peer.title) + '</div>' : '');
     const ctx = document.getElementById('thread-ctx');
     ctx.hidden = !state.thread.eventId;
@@ -1340,7 +1343,7 @@
         if (m.kind === 'broadcast') tag = '<div class="msg-tag">📢 お知らせ' + (ev ? '・' + ev : '') + '</div>';
         else if (ev) tag = '<div class="msg-tag">📅 ' + ev + '</div>';
         const who = (group && !m.mine && m.fromName + m.fromSub !== lastFrom)
-          ? '<div class="msg-from">' + avatarHtml(m.fromName, (t.avatars || {})[m.fromId], 'xs') + ' ' + esc(m.fromName) + ' <span class="muted">' + esc(m.fromSub) + '</span>' +
+          ? '<div class="msg-from">' + avatarHtml(nm(m.fromName, m.fromDisp), (t.avatars || {})[m.fromId], 'xs') + ' ' + esc(nm(m.fromName, m.fromDisp)) + ' <span class="muted">' + esc(m.fromSub) + '</span>' +
             (m.fromOrganizer ? ' <span class="org-tag">主催</span>' : '') + '</div>' : '';
         lastFrom = m.mine ? '' : (m.fromName + m.fromSub);
         const d = new Date(m.at);
