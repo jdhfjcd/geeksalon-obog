@@ -158,6 +158,7 @@
   .login-card { text-align: center; }
   .gsi-box { color-scheme: light; display: flex; justify-content: center; min-height: 44px; margin: 20px 0 12px; }
   .small { font-size: 12px; }
+  .field-note { font-size: 12px; color: var(--sub); margin: 6px 2px 0; line-height: 1.6; }
   footer { max-width: 1100px; margin: 0 auto; padding: 8px 16px 112px; display: flex; gap: 16px; justify-content: center;
     font-size: 12px; color: var(--sub); }
   footer a { color: var(--sub); }
@@ -395,15 +396,15 @@
     <div class="card form-card">
       <h2>イベントを登録</h2>
       <form id="create-form" class="form-grid">
-        <div class="full"><label for="c-sports">イベント名</label><input id="c-sports" maxlength="50" required placeholder="例：フットサル"></div>
+        <div class="full"><label for="c-sports">イベント名</label><input id="c-sports" maxlength="50" required placeholder="例：おさんぽ部"></div>
         <div><label for="c-date">開催日</label><input id="c-date" type="date" required></div>
         <div class="time-pair">
           <div><label for="c-start">開始</label><input id="c-start" type="time"></div>
           <div><label for="c-end">終了</label><input id="c-end" type="time"></div>
         </div>
-        <div><label for="c-place">場所</label><input id="c-place" maxlength="100" placeholder="例：CATORZE14 FUTSAL PARK 町田"></div>
+        <div><label for="c-place">場所</label><input id="c-place" maxlength="100" placeholder="例：皇居外苑"></div>
         <div><label for="c-url">場所のURL（Googleマップなど）</label><input id="c-url" type="url" placeholder="https://"></div>
-        <div><label for="c-price">料金（総額・円）</label><input id="c-price" type="number" min="0" step="1" inputmode="numeric" placeholder="例：17600"></div>
+        <div><label for="c-price">料金（総額・円）</label><input id="c-price" type="number" min="0" step="1" inputmode="numeric" placeholder="例：3000"><p class="field-note">※ 全員分の合計金額を入れてください。1人あたりの金額は参加人数で割って自動で表示されます（イベント後は実際に来た人数で計算し直します）</p></div>
         <div><label for="c-deadline">出欠の締切</label><input id="c-deadline" type="date"></div>
         <div class="full"><label for="c-item">持ち物</label><input id="c-item" maxlength="100" placeholder="例：運動靴・飲み物"></div>
         <div class="full"><label>対象のFY（複数選択できます・選ばなければ全員向け）</label><div class="chips" id="c-taisyo"></div></div>
