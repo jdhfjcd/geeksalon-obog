@@ -191,6 +191,17 @@
   .inapp-note p { font-size: 13px; margin: 8px 0; }
   .inapp-note input { margin-top: 6px; font-size: 13px; }
   .inapp-note .btn-main { margin-top: 10px; }
+  .avatar.group { border-radius: 14px; }
+  .chat-kind { font-size: 10px; font-weight: 800; color: var(--accent); background: var(--accent-weak); padding: 2px 6px; border-radius: 6px; margin-right: 6px; vertical-align: 1px; }
+  .chat-item.has-unread .chat-name { font-weight: 800; }
+  .chat-item.has-unread .chat-prev { color: var(--text); }
+  .msg-from { font-size: 11px; font-weight: 700; color: var(--sub); margin: 4px 0 3px 4px; }
+  .org-tag { font-size: 10px; font-weight: 800; color: #fff; background: var(--accent); padding: 1px 6px; border-radius: 6px; }
+  .btn-badge { display: inline-block; min-width: 22px; height: 22px; line-height: 22px; padding: 0 7px; margin-left: 8px; border-radius: 999px; background: #fff; color: var(--accent); font-size: 12px; font-weight: 800; }
+  .group-card .btn-main { margin-top: 10px; }
+  .thread-head { align-items: flex-start; }
+  .thread-head .btn-back { white-space: nowrap; flex: none; padding-top: 2px; }
+  #thread-peer { line-height: 1.5; }
   .field-note { font-size: 12px; color: var(--sub); margin: 6px 2px 0; line-height: 1.6; }
   footer { max-width: 1100px; margin: 0 auto; padding: 8px 16px 112px; display: flex; gap: 16px; justify-content: center;
     font-size: 12px; color: var(--sub); }
@@ -882,17 +893,14 @@
       routeCard +
       '</div><div class="col-side">' +
 
-      (d.canBroadcast ?
-      '<div class="card">' +
-        '<h3>参加者に一斉周知</h3>' +
-        '<p class="muted">参加者のチャットに届き、メールでも通知されます。</p>' +
-        '<textarea id="bc-body" rows="4" maxlength="1000" placeholder="例：雨天決行です。15:45に正面入口集合でお願いします"></textarea>' +
-        '<div class="bc-row">' +
-          '<select id="bc-target"><option value="join">参加の人（' + d.count + '人）</option>' +
-            '<option value="joinMaybe">参加＋未定の人（' + (d.count + d.maybeCount) + '人）</option></select>' +
-          '<button id="bc-send" onclick="sendBroadcast()">送信</button>' +
-        '</div>' +
-      '</div>' : '') +
+      (d.canGroup ?
+      '<div class="card group-card">' +
+        '<h3>グループトーク</h3>' +
+        '<p class="muted">主催者と「参加」の人だけのトークです。集合場所の連絡や質問にどうぞ。</p>' +
+        '<button class="btn-main" onclick="openGroup(\'' + esc(d.id) + '\')">💬 トークを開く' +
+          (d.groupUnread ? '<span class="btn-badge">' + d.groupUnread + '</span>' : '') + '</button>' +
+      '</div>'
+      : (d.loggedIn && !d.isPast ? '<div class="card"><h3>グループトーク</h3><p class="muted">「参加」にすると、主催者と参加者のグループトークに入れます。</p></div>' : '')) +
 
       '<div class="card">' +
         '<h3>1人あたりの金額</h3>' + perPerson +
@@ -1136,16 +1144,21 @@
   function renderChats(list) {
     const box = document.getElementById('chat-list');
     if (!list.length) {
-      box.innerHTML = '<div class="card center">まだトークはありません。<br>イベントページの「主催者に連絡」から始められます。</div>';
+      box.innerHTML = '<div class="card center">まだトークはありません。<br>イベントに「参加」すると、そのイベントのグループトークに入れます。</div>';
       return;
     }
     box.innerHTML = list.map(function (t) {
-      const prev = (t.lastKind === 'broadcast' ? '📢 ' : '') + (t.lastMine ? 'あなた：' : '') + t.lastBody.replace(/\s+/g, ' ');
-      return '<button class="chat-item" onclick="openThread(\'' + esc(t.peerId) + '\')">' +
-        '<span class="avatar">' + esc(t.name.charAt(0)) + '</span>' +
+      const group = t.type === 'group';
+      const prev = (t.lastFrom ? t.lastFrom + '：' : '') + t.lastBody.replace(/\s+/g, ' ');
+      const avatar = group
+        ? '<span class="avatar group" style="background:' + esc(t.color || '#FF6253') + ';color:' + textOn(t.color) + '">' + esc(t.name.charAt(0)) + '</span>'
+        : '<span class="avatar">' + esc(t.name.charAt(0)) + '</span>';
+      return '<button class="chat-item' + (t.unread ? ' has-unread' : '') + '" onclick="' + (group ? 'openGroup' : 'openThread') + '(\'' + esc(t.id) + '\')">' +
+        avatar +
         '<span class="chat-main">' +
-          '<span class="chat-top"><span class="chat-name">' + esc(t.name) + ' <span class="muted">' + esc(t.gradYear) + '</span></span>' +
-            '<span class="chat-time">' + fmtTime(t.lastAt) + '</span></span>' +
+          '<span class="chat-top"><span class="chat-name">' + (group ? '<span class="chat-kind">グループ</span>' : '') + esc(t.name) +
+            ' <span class="muted">' + esc(t.sub) + '</span></span>' +
+            '<span class="chat-time">' + (t.lastAt ? fmtTime(t.lastAt) : '') + '</span></span>' +
           '<span class="chat-bottom"><span class="chat-prev">' + esc(prev) + '</span>' +
             (t.unread ? '<span class="unread">' + t.unread + '</span>' : '') + '</span>' +
         '</span>' +
@@ -1155,9 +1168,17 @@
   function openThread(peerId, eventId) {
     stopPoll();
     const ctx = eventId && state.detail && state.detail.id === eventId ? state.detail.sports + '（' + state.detail.dateText + '）' : '';
-    state.thread = { peerId: peerId, eventId: ctx ? eventId : '', ctx: ctx, count: -1 };
+    state.thread = { type: 'dm', id: peerId, eventId: ctx ? eventId : '', ctx: ctx, count: -1 };
+    loadThread();
+  }
+  function openGroup(eventId) {
+    stopPoll();
+    state.thread = { type: 'group', id: String(eventId), eventId: '', ctx: '', count: -1 };
+    loadThread();
+  }
+  function loadThread() {
     show('v-loading');
-    call('getThread', peerId).then(function (t) {
+    call(state.thread.type === 'group' ? 'getGroup' : 'getThread', state.thread.id).then(function (t) {
       document.getElementById('thread-input').value = '';
       show('v-thread');
       renderThread(t, true);
@@ -1166,29 +1187,40 @@
   }
   function renderThread(t, force) {
     setUnread(t.unreadTotal);
-    document.getElementById('thread-peer').innerHTML =
-      '<span class="thread-peer">' + esc(t.peer.name) + '</span> <span class="muted">' + esc(t.peer.gradYear) + '</span>';
+    const group = t.type === 'group';
+    document.getElementById('thread-peer').innerHTML = group
+      ? '<span class="thread-peer"><span class="ev-dot" style="--ev:' + esc(t.event.color || '#FF6253') + '"></span>' + esc(t.event.sports) + '</span>' +
+        ' <span class="muted">' + esc(t.event.dateText) + '・' + t.memberCount + '人</span>' +
+        ' <a href="#" class="small" onclick="openDetail(\'' + esc(t.event.id) + '\');return false">イベントを見る</a>'
+      : '<span class="thread-peer">' + esc(t.peer.name) + '</span> <span class="muted">' + esc(t.peer.gradYear) + '</span>';
     const ctx = document.getElementById('thread-ctx');
     ctx.hidden = !state.thread.eventId;
     ctx.textContent = state.thread.eventId ? '📅 「' + state.thread.ctx + '」について連絡します' : '';
+    document.getElementById('thread-input').placeholder = group ? 'グループにメッセージ' : 'メッセージを入力';
     if (!force && t.messages.length === state.thread.count) return;
     state.thread.count = t.messages.length;
     const box = document.getElementById('thread-msgs');
     const nearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 120;
     let lastDay = '';
+    let lastFrom = '';
     box.innerHTML = !t.messages.length
-      ? '<p class="muted thread-empty">メッセージを送ってトークを始めましょう</p>'
+      ? '<p class="muted thread-empty">' + (group ? '主催者と参加者のグループです。集合場所の連絡や質問に使ってください。' : 'メッセージを送ってトークを始めましょう') + '</p>'
       : t.messages.map(function (m) {
         const day = fmtDay(m.at);
         const sep = day !== lastDay ? '<div class="msg-date">' + day + '</div>' : '';
+        if (sep) lastFrom = '';
         lastDay = day;
         const ev = m.eventTitle
           ? '<a href="#" onclick="openDetail(\'' + esc(m.eventId) + '\');return false">' + esc(m.eventTitle) + '</a>' : '';
-        const tag = m.kind === 'broadcast'
-          ? '<div class="msg-tag">📢 一斉周知' + (ev ? '・' + ev : '') + '</div>'
-          : (ev ? '<div class="msg-tag">📅 ' + ev + '</div>' : '');
+        let tag = '';
+        if (m.kind === 'broadcast') tag = '<div class="msg-tag">📢 お知らせ' + (ev ? '・' + ev : '') + '</div>';
+        else if (ev) tag = '<div class="msg-tag">📅 ' + ev + '</div>';
+        const who = (group && !m.mine && m.fromName + m.fromSub !== lastFrom)
+          ? '<div class="msg-from">' + esc(m.fromName) + ' <span class="muted">' + esc(m.fromSub) + '</span>' +
+            (m.fromOrganizer ? ' <span class="org-tag">主催</span>' : '') + '</div>' : '';
+        lastFrom = m.mine ? '' : (m.fromName + m.fromSub);
         const d = new Date(m.at);
-        return sep + '<div class="msg ' + (m.mine ? 'me' : 'them') + (m.kind === 'broadcast' ? ' broadcast' : '') + '">' + tag +
+        return sep + '<div class="msg ' + (m.mine ? 'me' : 'them') + (m.kind === 'broadcast' ? ' broadcast' : '') + '">' + who + tag +
           '<div class="bubble">' + linkify(esc(m.body)) + '</div>' +
           '<span class="msg-time">' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + '</span></div>';
       }).join('');
@@ -1198,7 +1230,7 @@
     pollTimer = setInterval(function () {
       if (document.getElementById('v-thread').hidden) { stopPoll(); return; }
       if (document.hidden || state.sending) return;
-      api({ action: 'getThread', args: [state.thread.peerId], session: getSession() })
+      api({ action: state.thread.type === 'group' ? 'getGroup' : 'getThread', args: [state.thread.id], session: getSession() })
         .then(function (t) { if (!document.getElementById('v-thread').hidden) renderThread(t, false); })
         .catch(function () {});
     }, 6000);
@@ -1213,7 +1245,10 @@
     if (!body || state.sending) return;
     const btn = document.getElementById('thread-send');
     state.sending = true; btn.disabled = true;
-    call('sendMessage', state.thread.peerId, body, state.thread.eventId).then(function (t) {
+    const req = state.thread.type === 'group'
+      ? call('sendGroupMessage', state.thread.id, body)
+      : call('sendMessage', state.thread.id, body, state.thread.eventId);
+    req.then(function (t) {
       input.value = '';
       input.style.height = '';
       state.thread.eventId = '';
@@ -1234,24 +1269,6 @@
     this.style.height = 'auto';
     this.style.height = Math.min(this.scrollHeight, 140) + 'px';
   });
-
-  /* ---------- 一斉周知 ---------- */
-  function sendBroadcast() {
-    const body = document.getElementById('bc-body').value.trim();
-    const sel = document.getElementById('bc-target');
-    if (!body) { alert('メッセージを入力してください'); return; }
-    if (!confirm(sel.options[sel.selectedIndex].text + 'に送信します。メールでも通知されます。よろしいですか？')) return;
-    const btn = document.getElementById('bc-send');
-    btn.disabled = true; btn.textContent = '送信中…';
-    call('broadcast', state.detail.id, body, sel.value).then(function (r) {
-      document.getElementById('bc-body').value = '';
-      toast(r.sent + '人に送信しました' + (r.mailed < r.sent ? '（メールは' + r.mailed + '人）' : ''));
-    }).catch(function (e) {
-      alert(errText(e));
-    }).finally(function () {
-      btn.disabled = false; btn.textContent = '送信';
-    });
-  }
 
   function savedListMode() {
     try { return localStorage.getItem('gs_obog_view') === 'cal' ? 'cal' : 'list'; } catch (e) { return 'list'; }
