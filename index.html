@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>GeekSalon OBOG イベントポータル</title>
 <meta name="description" content="GeekSalon OB・OG のイベント出欠ポータル">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="OBOGイベント">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#141416" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23ff6253'/%3E%3C/svg%3E">
@@ -1405,6 +1411,11 @@
     document.getElementById('route-result').innerHTML =
       '<iframe class="map route-map" src="' + esc(routeEmbedUrl(origin, place)) + '"></iframe>' +
       '<p><a href="' + esc(routeAppUrl(origin, place)) + '" target="_blank" rel="noopener">Googleマップのアプリで開く</a></p>';
+  }
+
+  // ホーム画面に追加したときにアプリとして動かす
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
   }
 
   boot();
