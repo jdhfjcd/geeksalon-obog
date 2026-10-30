@@ -187,6 +187,10 @@
   .swatch input:checked + span { box-shadow: 0 0 0 2px var(--text); transform: scale(1.08); }
   .detail-top { border-top: 6px solid var(--ev, var(--accent)); }
   .ev-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--ev, var(--accent)); margin-right: 8px; vertical-align: 2px; }
+  .inapp-note { text-align: left; background: var(--accent-weak); border-radius: 12px; padding: 14px 16px; width: 100%; }
+  .inapp-note p { font-size: 13px; margin: 8px 0; }
+  .inapp-note input { margin-top: 6px; font-size: 13px; }
+  .inapp-note .btn-main { margin-top: 10px; }
   .field-note { font-size: 12px; color: var(--sub); margin: 6px 2px 0; line-height: 1.6; }
   footer { max-width: 1100px; margin: 0 auto; padding: 8px 16px 112px; display: flex; gap: 16px; justify-content: center;
     font-size: 12px; color: var(--sub); }
@@ -511,6 +515,15 @@
   const CLIENT_ID = '730249034478-07u0ubf52kpacacg8d3se3efctrtma9r.apps.googleusercontent.com';
   const SESSION_KEY = 'gs_obog_session';
 
+  // LINE・Instagram などのアプリ内ブラウザでは Google ログインが禁止されている。
+  // LINE は openExternalBrowser=1 を付けると Safari / Chrome で開き直してくれる。
+  const UA = navigator.userAgent || '';
+  const IN_APP = /Line\/|FBAN|FBAV|Instagram|Twitter|MicroMessenger|KAKAOTALK|; wv\)/i.test(UA);
+  (function () {
+    if (/Line\//i.test(UA) && !/[?&]openExternalBrowser=1/.test(location.search)) {
+      location.replace(location.pathname + (location.search ? location.search + '&' : '?') + 'openExternalBrowser=1' + location.hash);
+    }
+  })();
   const QS = new URLSearchParams(location.search);
   const INITIAL_EVENT = /^[A-Za-z0-9_-]{1,64}$/.test(QS.get('event') || '') ? QS.get('event') : '';
   const INITIAL_CHAT = /^[A-Za-z0-9-]{8,64}$/.test(QS.get('chat') || '') ? QS.get('chat') : '';
@@ -556,7 +569,25 @@
     document.getElementById('login-msg').textContent = msg ||
       'Googleアカウントでログインすると、出欠の登録や参加者の確認ができます。';
     show('v-login');
+    if (IN_APP) { renderInAppNotice(); return; }
     renderGsiButton();
+  }
+  /** アプリ内ブラウザで開かれたときの案内 */
+  function renderInAppNotice() {
+    const url = location.origin + location.pathname;
+    document.getElementById('gsi-btn').innerHTML =
+      '<div class="inapp-note">' +
+        '<b>このままではGoogleログインできません</b>' +
+        '<p>LINEやInstagramなど、アプリの中で開いたページではGoogleがログインを止めています。</p>' +
+        '<p>画面の「︙」や「…」などのメニューから<b>「ブラウザで開く」</b>を選ぶか、下のURLをコピーしてSafari / Chromeに貼り付けて開いてください。</p>' +
+        '<input readonly value="' + esc(url) + '" onclick="this.select()">' +
+        '<button class="btn-main" onclick="copyUrl(\'' + esc(url) + '\')">URLをコピー</button>' +
+      '</div>';
+  }
+  function copyUrl(url) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(function () { toast('URLをコピーしました'); }).catch(function () {});
+    }
   }
   function renderGsiButton() {
     if (!(window.google && google.accounts && google.accounts.id)) {
